@@ -222,7 +222,7 @@ uint8_t gmtab[256][6] =
 };
 #undef G
 
-static void expand_key(uint8_t *expandedKey, uint8_t *key, int size, size_t expandedKeySize)
+static void expand_key(uint8_t *expandedKey, const uint8_t *key, int size, size_t expandedKeySize)
 {
 	int csz;
 	int i;
@@ -313,7 +313,7 @@ static void mix_columns(uint8_t *state)
 	}
 }
 
-static void create_round_key(uint8_t *expandedKey, uint8_t *rk)
+static void create_round_key(const uint8_t *expandedKey, uint8_t *rk)
 {
 	int i,j;
 	for (i = 0; i < 4; i++)
@@ -321,7 +321,7 @@ static void create_round_key(uint8_t *expandedKey, uint8_t *rk)
 			rk[i + j * 4] = expandedKey[i * 4 + j];
 }
 
-static void aes_main(aes_key *key, uint8_t *state)
+static void aes_main(const aes_key *key, uint8_t *state)
 {
 	int i = 0;
 	uint8_t rk[16];
@@ -371,7 +371,7 @@ static void mix_columns_inv(uint8_t *state)
 	}
 }
 
-static void aes_main_inv(aes_key *key, uint8_t *state)
+static void aes_main_inv(const aes_key *key, uint8_t *state)
 {
 	int i = 0;
 	uint8_t rk[16];
@@ -403,7 +403,7 @@ static void aes_main_inv(aes_key *key, uint8_t *state)
 	t[2] = f[8]; t[6] = f[9]; t[10] = f[10]; t[14] = f[11]; \
 	t[3] = f[12]; t[7] = f[13]; t[11] = f[14]; t[15] = f[15]
 
-void aes_generic_encrypt_block(aes_block *output, aes_key *key, aes_block *input)
+void aes_generic_encrypt_block(aes_block *output, const aes_key *key, const aes_block *input)
 {
 	uint8_t block[16];
 	uint8_t *iptr, *optr;
@@ -415,7 +415,7 @@ void aes_generic_encrypt_block(aes_block *output, aes_key *key, aes_block *input
 	swap_block(optr, block);
 }
 
-void aes_generic_decrypt_block(aes_block *output, aes_key *key, aes_block *input)
+void aes_generic_decrypt_block(aes_block *output, const aes_key *key, const aes_block *input)
 {
 	uint8_t block[16];
 	uint8_t *iptr, *optr;
@@ -427,7 +427,7 @@ void aes_generic_decrypt_block(aes_block *output, aes_key *key, aes_block *input
 	swap_block(optr, block);
 }
 
-void aes_generic_init(aes_key *key, uint8_t *origkey, uint8_t size)
+void aes_generic_init(aes_key *key, const uint8_t *origkey, uint8_t size)
 {
 	int esz;
 

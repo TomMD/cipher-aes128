@@ -4,6 +4,8 @@ module Crypto.Cipher.Internal.AES128
         , generateKey
         , encryptECB
         , decryptECB
+        , encryptGCM
+        , decryptGCM
         ) where
 
 import Foreign.Ptr
@@ -89,7 +91,7 @@ encryptECB :: AESKey    -- ^ The key
            -> Int       -- ^ The input size in blocks
            -> IO ()
 encryptECB (AESKey _ k) dst src blks = withForeignPtr k $ \p -> c_encrypt_ecb p dst src (fromIntegral blks)
-{-# INLINE encrypt #-}
+{-# INLINE encryptECB #-}
 
 decryptECB :: AESKey    -- ^ The key
            -> Ptr Word8 -- ^ The result buffer
@@ -99,4 +101,26 @@ decryptECB :: AESKey    -- ^ The key
 decryptECB (AESKey _ k) dst src blks
   | blks > fromIntegral (maxBound `div` blkSzC :: Word32) = error "Can not decrypt so many blocks at once"
   | otherwise = withForeignPtr k $ \p -> c_decrypt_ecb p dst src (fromIntegral blks)
+{-# INLINE decryptECB #-}
 
+encryptGCM :: AESKey
+           -> Ptr Word8 -> Int -- IV
+           -> Ptr Word8 -> Int -- AAD
+           -> Ptr Word8 -> Int -- PT
+           -> Ptr Word8        -- CT  (output)
+           -> Ptr Word8        -- Tag (output)
+           -> IO ()
+encryptGCM (AESKey _ k) iv ivLen aad aadLen pt ptLen ct tag = withForeignPtr k $ \p -> do
+        c_encrypt_gcm p iv (fromIntegral ivLen) aad (fromIntegral aadLen) pt (fromIntegral ptLen) ct tag
+{-# INLINE encryptGCM #-}
+
+decryptGCM :: AESKey
+           -> Ptr Word8 -> Int -- IV
+           -> Ptr Word8 -> Int -- AAD
+           -> Ptr Word8 -> Int -- CT
+           -> Ptr Word8        -- PT  (output)
+           -> Ptr Word8        -- Tag (output)
+           -> IO ()
+decryptGCM (AESKey _ k) iv ivLen aad aadLen ct ctLen pt tag = withForeignPtr k $ \p -> do
+        c_decrypt_gcm p iv (fromIntegral ivLen) aad (fromIntegral aadLen) ct (fromIntegral ctLen) pt tag
+{-# INLINE decryptGCM #-}
