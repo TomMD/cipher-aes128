@@ -39,11 +39,11 @@ instance BlockCipher AES128 where
     encryptBlock (AES128 k) b = unsafePerformIO $ do
         B.unsafeUseAsCStringLen b $ \(inP,len) -> do
          B.create (B.length b) $ \outP -> do
-            encryptECB k (castPtr inP) (castPtr outP) (len`div`blkSize)
+            encryptECB k (castPtr outP) (castPtr inP) (len`div`blkSize)
     decryptBlock (AES128 k) b = unsafePerformIO $ do
         B.unsafeUseAsCStringLen b $ \(inP,len) -> do
          B.create (B.length b) $ \outP -> do
-            decryptECB k (castPtr inP) (castPtr outP) (len`div`blkSize)
+            decryptECB k (castPtr outP) (castPtr inP) (len`div`blkSize)
 
 blkSize :: Int
 blkSize = 16

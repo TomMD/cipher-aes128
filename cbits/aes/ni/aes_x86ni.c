@@ -28,15 +28,13 @@
  * SUCH DAMAGE.
  */
 
-#ifdef WITH_AESNI
-
 #include <wmmintrin.h>
 #include <tmmintrin.h>
 #include "aes.h"
 #include "aes_x86ni.h"
-#include "cpu.h"
+// #include "cpu.h"
 
-#ifdef ARCH_X86
+#if (defined(__i386__) || defined(__x86_64__))
 #define ALIGN_UP(addr, size) (((addr) + ((size) - 1)) & (~((size) - 1)))
 #define ALIGNMENT(n) __attribute__((aligned(n)))
 
@@ -270,6 +268,4 @@ void aes_ni_encrypt_xts(uint8_t *out, aes_key *key1, aes_key *key2,
 	} while (0);
 }
 
-#endif
-
-#endif
+#endif /* x86 */

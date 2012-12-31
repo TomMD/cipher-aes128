@@ -1,6 +1,7 @@
 #include "aes_generic.h"
 #include "aes.h"
 #include <string.h>
+#include <stdlib.h>
 
 /* The "HAVE_NI" macro is also defined (or not) but we no longer need that
  * since we're doing a runtime detection... again. */
@@ -125,7 +126,7 @@ void encrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32
 #endif
 
 /* ECB Decrypt */
-#ifndef TRY_NI
+#ifdef TRY_NI
 void detect_and_decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr);
 void (*decrypt_ecb_ptr)(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr) = &detect_and_decrypt_ecb;
 
@@ -153,7 +154,7 @@ void detect_and_decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, c
 {
         if(cpu_has_ni()) decrypt_ecb_ptr = &decrypt_ecb_ni;
         else decrypt_ecb_ptr = &decrypt_ecb_generic;
-        (*decrypt_ecb_ptr)(k,dst,src,ni);
+        (*decrypt_ecb_ptr)(k,dst,src,nr);
 }
 #else
 void decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)

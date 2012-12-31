@@ -14,10 +14,7 @@ category:            Cryptography
 build-type:          Custom
 cabal-version:       >=1.12
 
-extra-source-files:       ./cbits/aes/aes.h
-                        , ./cbits/aes/ni/aes_x86ni.h
-                        , ./cbits/aes/ni/block128.h
-                        , ./cbits/include/aes.h
+extra-source-files:       ./cbits/include/aes.h
                         , ./cbits/include/aes_generic.h
                         , ./cbits/include/aes_types.h
                         , ./cbits/include/aes_x86ni.h
@@ -35,8 +32,8 @@ library
                        cereal
   ghc-options:         -Wall -O2
 
-  c-sources:              cbits/aes/aes.c
-                        , cbits/aes/generic/aes_generic.c
-                        , cbits/aes/ni/aes_x86ni.c
+  c-sources:              ./cbits/aes/aes.c
+                        , ./cbits/aes/ni/aes_x86ni.c
+                        , ./cbits/aes/generic/aes_generic.c
   include-dirs:        cbits/include
   cc-options:          -O3

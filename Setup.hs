@@ -68,14 +68,3 @@ canUseAesIntrinsicsFlag cf = do
         ec <- rawSystemExitCode normal cc ["-maes",tmpDir ++ "/testIntrinsic.c"]
         notice normal $ "Result of NI Intrinsics Test: " ++ show (ec == ExitSuccess)
         return (ec == ExitSuccess)
-
-
--- Hook to run before build command. Second arg indicates verbosity level.
-runHSC :: Args -> BuildFlags -> IO HookedBuildInfo
-runHSC _ p = do
-        let paths = buildProgramPaths p
-            hsc2hs = maybe "hsc2hs" id (lookup "hsc2hs" paths)
-        system (hsc2hs ++ " Math/Pmath/Internal.hsc -o Math/Pmath/Internal.hs ")
-        renameFile "Math/PMath/Internal_hsc.c" "cbits/Internal_hsc.c"
-        renameFile "Math/PMath/Internal_hsc.h" "cbits/Internal_hsc.h"
-        return emptyHookedBuildInfo
