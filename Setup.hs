@@ -29,6 +29,8 @@ addNIintrinsicOpt bi = bi { ccOptions = ccOptions bi ++ ["-maes", "-mssse3", "-D
 haveNIInstrs :: BuildFlags -> IO Bool
 haveNIInstrs cf = do
         -- FIXME cf is always empty, how do we ensure we're testing the right C compiler?
+        -- TODO: I am hooking Cabal at the wrong spot, need to hook one stage
+        -- later!
         let prog = lookup "cc" (buildProgramPaths cf)
             cc = maybe "gcc" id prog
         withTempDirectory normal "" "testNI" $ \tmpDir -> do
@@ -57,6 +59,8 @@ haveNIInstrs cf = do
 canUseAesIntrinsicsFlag :: BuildFlags -> IO Bool
 canUseAesIntrinsicsFlag cf = do
         -- FIXME cf is always empty, how do we ensure we're testing the right C compiler?
+        -- TODO: I am hooking Cabal at the wrong spot, need to hook one stage
+        -- later!
         let prog = lookup "cc" (buildProgramPaths cf)
             cc = maybe "gcc" id prog
         withTempDirectory normal "" "testIntrinsic" $ \tmpDir -> do
