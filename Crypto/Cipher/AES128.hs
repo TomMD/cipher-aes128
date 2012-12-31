@@ -6,7 +6,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.ByteString.Internal as B
 import Data.Tagged
-import Crypto.Cipher.Internal.AES128
+import Crypto.Cipher.AES128.Internal
 import Crypto.Classes
 import Foreign.Ptr
 import System.IO.Unsafe
