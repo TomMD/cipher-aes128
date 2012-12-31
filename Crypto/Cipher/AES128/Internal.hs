@@ -1,5 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
-module Crypto.Cipher.Internal.AES128
+module Crypto.Cipher.AES128.Internal
         ( AESKey(..), RawKey(..)
         , generateKey
         , encryptECB
