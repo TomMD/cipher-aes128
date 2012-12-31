@@ -2,8 +2,8 @@
 module Crypto.Cipher.Internal.AES128
         ( AESKey(..), RawKey(..)
         , generateKey
-        , encrypt
-        , decrypt
+        , encryptECB
+        , decryptECB
         ) where
 
 import Foreign.Ptr
@@ -31,14 +31,31 @@ foreign import ccall unsafe "aes/aes.h &free_key128"
 foreign import ccall unsafe "aes/aes.h encrypt_ecb"
         c_encrypt_ecb :: AESKeyPtr -> Ptr Word8 -> Ptr Word8 -> Word32 -> IO ()
 
-foreign import ccall "aes/aes.h decrypt_ecb"
+foreign import ccall unsafe "aes/aes.h decrypt_ecb"
         c_decrypt_ecb :: AESKeyPtr -> Ptr Word8 -> Ptr Word8 -> Word32 -> IO ()
+
+foreign import ccall unsafe "aes/aes.h aes_gcm_full_encrypt"
+    c_encrypt_gcm :: AESKeyPtr
+                  -> Ptr Word8 -> Word32 -- ^ IV and length
+                  -> Ptr Word8 -> Word32 -- ^ AAD and length
+                  -> Ptr Word8 -> Word32 -- ^ PT and length
+                  -> Ptr Word8 -> Ptr Word8 -- ^ Result CT and TAG
+                  -> IO ()
+
+foreign import ccall unsafe "aes/aes.h aes_gcm_full_decrypt"
+    c_decrypt_gcm :: AESKeyPtr
+                  -> Ptr Word8 -> Word32 -- ^ IV and length
+                  -> Ptr Word8 -> Word32 -- ^ AAD and length
+                  -> Ptr Word8 -> Word32 -- ^ CT and length
+                  -> Ptr Word8 -> Ptr Word8 -- ^ Result PT and TAG
+                  -> IO ()
 
 blkSzC :: Word32
 blkSzC = 16
 
 -- Given a 16 byte buffer, allocate and return an AESKey
-generateKey :: Ptr Word64 -> IO AESKey
+generateKey :: Ptr Word64 -- ^ Buffer of 16 bytes of key material
+            -> IO AESKey
 generateKey keyPtr  = do
     k <- c_allocate_key128
     c_generate_key128 k (castPtr keyPtr)
@@ -66,12 +83,20 @@ generateKey keyPtr  = do
 
 -- An encrypt function that can handle up to blks < maxBound `div` 16 :: Word32
 -- simultaneous blocks.
-encrypt :: AESKey -> Ptr Word8 -> Ptr Word8 -> Int -> IO ()
-encrypt (AESKey _ k) dst src blks = withForeignPtr k $ \p -> c_encrypt_ecb p dst src (fromIntegral blks)
+encryptECB :: AESKey    -- ^ The key
+           -> Ptr Word8 -- ^ The result buffer
+           -> Ptr Word8 -- ^ The source buffer
+           -> Int       -- ^ The input size in blocks
+           -> IO ()
+encryptECB (AESKey _ k) dst src blks = withForeignPtr k $ \p -> c_encrypt_ecb p dst src (fromIntegral blks)
 {-# INLINE encrypt #-}
 
-decrypt :: AESKey -> Ptr Word8 -> Ptr Word8 -> Int -> IO ()
-decrypt (AESKey _ k) dst src blks
+decryptECB :: AESKey    -- ^ The key
+           -> Ptr Word8 -- ^ The result buffer
+           -> Ptr Word8 -- ^ The source buffer
+           -> Int       -- ^ The input size in blocks
+           -> IO ()
+decryptECB (AESKey _ k) dst src blks
   | blks > fromIntegral (maxBound `div` blkSzC :: Word32) = error "Can not decrypt so many blocks at once"
   | otherwise = withForeignPtr k $ \p -> c_decrypt_ecb p dst src (fromIntegral blks)
 
