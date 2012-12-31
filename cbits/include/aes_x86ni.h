@@ -35,13 +35,8 @@
 
 #include <wmmintrin.h>
 #include <tmmintrin.h>
+#include "aes_types.h"
 #include "block128.h"
-
-typedef struct {
-    uint8_t nbr;
-    uint8_t _padding[7];
-    uint8_t data[16*14*2];
-} aes_key;
 
 void aes_ni_init(aes_key *key, const uint8_t *origkey, uint8_t size);
 void aes_ni_encrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks);
