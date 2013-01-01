@@ -2,16 +2,15 @@ module Crypto.Cipher.AES128
   ( AESKey
   ) where
 
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Unsafe as B
-import qualified Data.ByteString.Internal as B
-import Data.Tagged
 import Crypto.Cipher.AES128.Internal
 import Crypto.Classes
+import Data.Serialize
+import Data.Tagged
 import Foreign.Ptr
 import System.IO.Unsafe
-
-import Data.Serialize
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Internal as B
+import qualified Data.ByteString.Unsafe as B
 
 instance Serialize AESKey where
     put k = do
