@@ -440,3 +440,4 @@ void aes_generic_init(aes_key *key, const uint8_t *origkey, uint8_t size)
 	expand_key(key->data, origkey, size, esz);
 	return;
 }
+

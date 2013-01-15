@@ -6,6 +6,8 @@ module Crypto.Cipher.AES128.Internal
         , decryptECB
         , encryptGCM
         , decryptGCM
+        , encryptCTR
+        , decryptCTR
         ) where
 
 import Foreign.Ptr
@@ -51,6 +53,22 @@ foreign import ccall unsafe "aes/aes.h aes_gcm_full_decrypt"
                   -> Ptr Word8 -> Word32 -- ^ CT and length
                   -> Ptr Word8 -> Ptr Word8 -- ^ Result PT and TAG
                   -> IO ()
+
+foreign import ccall unsafe "aes/aes.h aes_encrypt_ctr"
+    c_encrypt_ctr :: AESKeyPtr
+                  -> Ptr Word8 -- ^ 128 bit IV
+                  -> Ptr Word8 -- ^ Result
+                  -> Ptr Word8 -- ^ Input
+                  -> Word32    -- ^ Input length in bytes
+                  -> IO ()
+
+c_decrypt_ctr :: AESKeyPtr
+              -> Ptr Word8 -- ^ 128 bit IV
+              -> Ptr Word8 -- ^ Result
+              -> Ptr Word8 -- ^ Input
+              -> Word32    -- ^ Input length in bytes
+              -> IO ()
+c_decrypt_ctr = c_encrypt_ctr
 
 blkSzC :: Word32
 blkSzC = 16
@@ -124,3 +142,24 @@ decryptGCM :: AESKey
 decryptGCM (AESKey _ k) iv ivLen aad aadLen ct ctLen pt tag = withForeignPtr k $ \p -> do
         c_decrypt_gcm p iv (fromIntegral ivLen) aad (fromIntegral aadLen) ct (fromIntegral ctLen) pt tag
 {-# INLINE decryptGCM #-}
+
+encryptCTR :: AESKey
+           -> Ptr Word8 -- ^ IV
+           -> Ptr Word8 -- ^ CT
+           -> Ptr Word8 -- ^ PT
+           -> Int       -- ^ Length in bytes
+           -> IO ()
+encryptCTR (AESKey _ k) iv ct pt len = withForeignPtr k $ \p -> do
+    c_encrypt_ctr p iv ct pt (fromIntegral len)
+{-# INLINE encryptCTR #-}
+
+decryptCTR :: AESKey
+           -> Ptr Word8 -- ^ IV
+           -> Ptr Word8 -- ^ CT
+           -> Ptr Word8 -- ^ PT
+           -> Int       -- ^ Length in bytes
+           -> IO ()
+
+decryptCTR (AESKey _ k) iv ct pt len = withForeignPtr k $ \p -> do
+    c_decrypt_ctr p iv ct pt (fromIntegral len)
+{-# INLINE decryptCTR #-}
