@@ -11,6 +11,8 @@ author:              Thomas M. DuBuisson, Vincent Hanquez (See AUTHORS file)
 maintainer:          thomas.dubuisson@gmail.com
 copyright:           Thomas M. DuBuisson
 category:            Cryptography
+homepage:            https://github.com/TomMD/cipher-aes128
+bug-reports:         https://github.com/TomMD/cipher-aes128
 build-type:          Custom
 cabal-version:       >=1.12
 
@@ -37,3 +39,7 @@ library
                         , ./cbits/aes/generic/aes_generic.c
   include-dirs:        cbits/include
   cc-options:          -O3
+
+source-repository head
+  type:         git
+  location:     https://github.com/TomMD/cipher-aes128
