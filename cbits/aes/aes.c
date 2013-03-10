@@ -3,8 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* The "HAVE_NI" macro is also defined (or not) but we no longer need that
- * since we're doing a runtime detection... again. */
 #if (defined(__i386__) || defined(__x86_64__)) && defined(HAVE_AES_INTRINSICS) && !defined(AVOID_NI)
 #define TRY_NI
 #include "aes_x86ni.h"
