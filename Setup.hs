@@ -8,18 +8,15 @@ import Distribution.Verbosity
 import System.Process
 import System.Directory
 import System.Exit
-import Text.Groom
 
 main = defaultMainWithHooks hk
  where
  hk = simpleUserHooks { buildHook = \pd lbi uh bf -> do
-                                        print "yo yo yo"
                                         let ccProg = Program "gcc" undefined undefined undefined
                                             mConf = lookupProgram ccProg (withPrograms lbi)
                                             err = error "Could not determine C compiler"
                                             cc = locationPath . programLocation  . maybe err id $ mConf
                                         b <- canUseAesIntrinsicsFlag cc
-                                        print (withPrograms lbi)
                                         let newWithPrograms1 = userSpecifyArgs "gcc" aesArgs (withPrograms lbi)
                                             newWithPrograms  = userSpecifyArgs "ghc" aesArgsHC newWithPrograms1
                                         buildHook simpleUserHooks pd (lbi {withPrograms = newWithPrograms }) uh bf
