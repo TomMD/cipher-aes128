@@ -19,7 +19,8 @@ main = defaultMainWithHooks hk
                                         b <- canUseAesIntrinsicsFlag cc
                                         let newWithPrograms1 = userSpecifyArgs "gcc" aesArgs (withPrograms lbi)
                                             newWithPrograms  = userSpecifyArgs "ghc" aesArgsHC newWithPrograms1
-                                        buildHook simpleUserHooks pd (lbi {withPrograms = newWithPrograms }) uh bf
+                                            lbiNew = if b then (lbi {withPrograms = newWithPrograms }) else lbi
+                                        buildHook simpleUserHooks pd lbiNew uh bf
                       }
 
 aesArgs :: [String]
