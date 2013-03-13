@@ -20,7 +20,7 @@ void aes_gcm_full_decrypt( const AESKey *k
                          , uint8_t *aad, uint32_t aadLen
                          , uint8_t *ct, uint32_t ctLen
                          , uint8_t *pt, uint8_t *tag);
-void aes_encrypt_ctr( AESKey *key
+void encrypt_ctr( AESKey *key
                     , uint8_t *iv
                     , uint8_t *dst
                     , uint8_t *src

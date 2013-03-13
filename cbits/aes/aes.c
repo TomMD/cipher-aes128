@@ -8,13 +8,13 @@
 #include "aes_x86ni.h"
 #endif
 #include "bitfn.h"
-void gf_mul(block128 *a, block128 *b);
+static void gf_mul(block128 *a, block128 *b);
 
 #ifdef TRY_NI
 /**
  * Returns zero if false, non-zero otherwise
  */
-int cpu_has_ni()
+static int cpu_has_ni()
 {
        uint32_t ax,bx,cx,dx,func=1;
 
@@ -34,8 +34,8 @@ AESKey *allocate_key128()
 
 /* Generate Key */
 #ifdef TRY_NI
-void detect_and_generate_key128(AESKey *k, const uint8_t *bytes);
-void (*generate_key128_ptr)(AESKey *,const uint8_t *) = &detect_and_generate_key128;
+static void detect_and_generate_key128(AESKey *k, const uint8_t *bytes);
+static void (*generate_key128_ptr)(AESKey *,const uint8_t *) = &detect_and_generate_key128;
 
 /**
  * Expand a 128 bit AES key.
@@ -45,17 +45,17 @@ void generate_key128(AESKey *k, const uint8_t *bytes)
     (*generate_key128_ptr)(k,bytes);
 }
 
-void generate_key128_generic(AESKey *k, const uint8_t *bytes)
+static void generate_key128_generic(AESKey *k, const uint8_t *bytes)
 {
     aes_generic_init(k, bytes, 16);
 }
 
-void generate_key128_ni(AESKey *k, const uint8_t *bytes)
+static void generate_key128_ni(AESKey *k, const uint8_t *bytes)
 {
     aes_ni_init((aes_key *)k, bytes, 16);
 }
 
-void detect_and_generate_key128(AESKey *k, const uint8_t *bytes)
+static void detect_and_generate_key128(AESKey *k, const uint8_t *bytes)
 {
     if(cpu_has_ni()) {
             generate_key128_ptr = &generate_key128_ni;
@@ -80,15 +80,15 @@ void free_key128(AESKey *k)
 
 /* ECB Encrypt */
 #ifdef TRY_NI
-void detect_and_encrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr);
-void (*encrypt_ecb_ptr)(const AESKey *, uint8_t *, const uint8_t *, const uint32_t) = &detect_and_encrypt_ecb;
+static void detect_and_encrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr);
+static void (*encrypt_ecb_ptr)(const AESKey *, uint8_t *, const uint8_t *, const uint32_t) = &detect_and_encrypt_ecb;
 
-void encrypt_ecb_ni(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
+static void encrypt_ecb_ni(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
         aes_ni_encrypt_ecb(dst, (aes_key *)k, src, nr);
 }
 
-void encrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
+static void encrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
     int i;
     for(i = 0; i<nr*16; i+=16) {
@@ -104,7 +104,7 @@ void encrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32
         (*encrypt_ecb_ptr)(k,dst,src,nr);
 }
 
-void detect_and_encrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
+static void detect_and_encrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
         if(cpu_has_ni()) encrypt_ecb_ptr = &encrypt_ecb_ni;
         else encrypt_ecb_ptr = &encrypt_ecb_generic;
@@ -125,20 +125,20 @@ void encrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32
 
 /* ECB Decrypt */
 #ifdef TRY_NI
-void detect_and_decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr);
-void (*decrypt_ecb_ptr)(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr) = &detect_and_decrypt_ecb;
+static void detect_and_decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr);
+static void (*decrypt_ecb_ptr)(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr) = &detect_and_decrypt_ecb;
 
 void decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
         (*decrypt_ecb_ptr)(k,dst,src,nr);
 }
 
-void decrypt_ecb_ni(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
+static void decrypt_ecb_ni(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
         aes_ni_decrypt_ecb(dst, (aes_key *)k, src, nr);
 }
 
-void decrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
+static void decrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
     int i;
     for(i = 0; i<nr*16; i+=16) {
@@ -148,7 +148,7 @@ void decrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, cons
     }
 }
 
-void detect_and_decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
+static void detect_and_decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
         if(cpu_has_ni()) decrypt_ecb_ptr = &decrypt_ecb_ni;
         else decrypt_ecb_ptr = &decrypt_ecb_generic;
@@ -174,7 +174,7 @@ static void gcm_ghash_add(aes_gcm *gcm, block128 *b)
         gf_mul(&gcm->tag, &gcm->h);
 }
 
-void aes_gcm_init(aes_gcm *gcm, const aes_key *key, uint8_t *iv, uint32_t len)
+static void aes_gcm_init(aes_gcm *gcm, const aes_key *key, uint8_t *iv, uint32_t len)
 {
         gcm->length_aad = 0;
         gcm->length_input = 0;
@@ -210,7 +210,7 @@ void aes_gcm_init(aes_gcm *gcm, const aes_key *key, uint8_t *iv, uint32_t len)
         block128_copy(&gcm->civ, &gcm->iv);
 }
 
-void aes_gcm_aad(aes_gcm *gcm, uint8_t *input, uint32_t length)
+static void aes_gcm_aad(aes_gcm *gcm, uint8_t *input, uint32_t length)
 {
         gcm->length_aad += length;
         for (; length >= 16; input += 16, length -= 16) {
@@ -225,7 +225,7 @@ void aes_gcm_aad(aes_gcm *gcm, uint8_t *input, uint32_t length)
 
 }
 
-void aes_gcm_encrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint32_t length)
+static void aes_gcm_encrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint32_t length)
 {
         aes_block out;
 
@@ -258,7 +258,7 @@ void aes_gcm_encrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint32_t len
         }
 }
 
-void aes_gcm_decrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint32_t length)
+static void aes_gcm_decrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint32_t length)
 {
         aes_block out;
 
@@ -290,7 +290,7 @@ void aes_gcm_decrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint32_t len
         }
 }
 
-void aes_gcm_finish(uint8_t *tag, aes_gcm *gcm)
+static void aes_gcm_finish(uint8_t *tag, aes_gcm *gcm)
 {
         aes_block lblock;
         int i;
@@ -340,7 +340,7 @@ void aes_gcm_full_decrypt( const AESKey *k
  * to speed up the multiplication.
  * TODO: optimise with tables
  */
-void gf_mul(block128 *a, block128 *b)
+static void gf_mul(block128 *a, block128 *b)
 {
         uint64_t a0, a1, v0, v1;
         int i, j;
@@ -362,7 +362,7 @@ void gf_mul(block128 *a, block128 *b)
         a->q[1] = cpu_to_be64(a1);
 }
 
-void aes_encrypt_ctr(AESKey *key, uint8_t *iv, uint8_t *output, uint8_t *input, uint32_t len)
+void encrypt_ctr(AESKey *key, uint8_t *iv, uint8_t *output, uint8_t *input, uint32_t len)
 {
         aes_block block, o;
         uint32_t nb_blocks = len / 16;

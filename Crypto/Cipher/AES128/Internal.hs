@@ -54,7 +54,7 @@ foreign import ccall unsafe "aes/aes.h aes_gcm_full_decrypt"
                   -> Ptr Word8 -> Ptr Word8 -- ^ Result PT and TAG
                   -> IO ()
 
-foreign import ccall unsafe "aes/aes.h aes_encrypt_ctr"
+foreign import ccall unsafe "aes/aes.h encrypt_ctr"
     c_encrypt_ctr :: AESKeyPtr
                   -> Ptr Word8 -- ^ 128 bit IV
                   -> Ptr Word8 -- ^ Result
