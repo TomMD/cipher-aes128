@@ -38,15 +38,13 @@
 #include "aes_types.h"
 #include "block128.h"
 
-void aes_ni_init(aes_key *key, const uint8_t *origkey, uint8_t size);
-void aes_ni_encrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks);
-void aes_ni_decrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks);
-void aes_ni_encrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, uint32_t blocks);
-void aes_ni_decrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, uint32_t blocks);
-void aes_ni_encrypt_xts(uint8_t *out, aes_key *key1, aes_key *key2,
-                        uint8_t *_tweak, uint32_t spoint, uint8_t *in, uint32_t blocks);
-
-void gf_mul_x86ni(block128 *res, block128 *a_, block128 *b_);
+void aes128_ni_init(aes_key *key, const uint8_t *origkey, uint8_t size);
+void aes128_ni_encrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks);
+void aes128_ni_decrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks);
+void aes128_ni_encrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, uint32_t blocks);
+void aes128_ni_decrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, uint32_t blocks);
+void aes128_ni_encrypt_xts(uint8_t *out, aes_key *key1, aes_key *key2,
+                           uint8_t *_tweak, uint32_t spoint, uint8_t *in, uint32_t blocks);
 
 #endif
 

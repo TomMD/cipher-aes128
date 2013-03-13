@@ -47,12 +47,12 @@ void generate_key128(AESKey *k, const uint8_t *bytes)
 
 static void generate_key128_generic(AESKey *k, const uint8_t *bytes)
 {
-    aes_generic_init(k, bytes, 16);
+    aes128_generic_init(k, bytes, 16);
 }
 
 static void generate_key128_ni(AESKey *k, const uint8_t *bytes)
 {
-    aes_ni_init((aes_key *)k, bytes, 16);
+    aes128_ni_init((aes_key *)k, bytes, 16);
 }
 
 static void detect_and_generate_key128(AESKey *k, const uint8_t *bytes)
@@ -68,7 +68,7 @@ static void detect_and_generate_key128(AESKey *k, const uint8_t *bytes)
 #else
 void generate_key128(AESKey *k, const uint8_t *bytes)
 {
-    aes_generic_init(k, bytes, 16);
+    aes128_generic_init(k, bytes, 16);
 }
 #endif
 
@@ -85,14 +85,14 @@ static void (*encrypt_ecb_ptr)(const AESKey *, uint8_t *, const uint8_t *, const
 
 static void encrypt_ecb_ni(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
-        aes_ni_encrypt_ecb(dst, (aes_key *)k, src, nr);
+        aes128_ni_encrypt_ecb(dst, (aes_key *)k, src, nr);
 }
 
 static void encrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
     int i;
     for(i = 0; i<nr*16; i+=16) {
-        aes_generic_encrypt_block
+        aes128_generic_encrypt_block
                        ( (aes_block*) dst+i
                        , k
                        , (const aes_block*)src+i);
@@ -115,7 +115,7 @@ void encrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32
 {
     int i;
     for(i = 0; i<nr*16; i+=16) {
-        aes_generic_encrypt_block
+        aes128_generic_encrypt_block
                        ( (aes_block*) dst+i
                        , k
                        , (const aes_block*)src+i);
@@ -135,14 +135,14 @@ void decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32
 
 static void decrypt_ecb_ni(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
-        aes_ni_decrypt_ecb(dst, (aes_key *)k, src, nr);
+        aes128_ni_decrypt_ecb(dst, (aes_key *)k, src, nr);
 }
 
 static void decrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
     int i;
     for(i = 0; i<nr*16; i+=16) {
-        aes_generic_decrypt_block ( (aes_block*) dst+i
+        aes128_generic_decrypt_block ( (aes_block*) dst+i
                                   , k
                                   , (const aes_block*)src+i);
     }
@@ -159,7 +159,7 @@ void decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32
 {
     int i;
     for(i = 0; i<nr*16; i+=16) {
-        aes_generic_decrypt_block ( (aes_block*) dst+i
+        aes128_generic_decrypt_block ( (aes_block*) dst+i
                                   , k
                                   , (const aes_block*)src+i);
     }

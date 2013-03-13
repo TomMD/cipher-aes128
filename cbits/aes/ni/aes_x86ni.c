@@ -84,7 +84,7 @@ static void aes_generate_key128(aes_key *key, const uint8_t *ikey)
 		_mm_storeu_si128(((__m128i *) out) + i, k[i]);
 }
 
-void aes_ni_init(aes_key *key, const uint8_t *origkey, uint8_t size)
+void aes128_ni_init(aes_key *key, const uint8_t *origkey, uint8_t size)
 {
 	switch (size) {
 	case 16: aes_generate_key128(key, origkey); break;
@@ -145,7 +145,7 @@ void aes_ni_init(aes_key *key, const uint8_t *origkey, uint8_t size)
 	m = _mm_aesdec_si128(m, K9); \
 	m = _mm_aesdeclast_si128(m, K10);
 
-void aes_ni_encrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks)
+void aes128_ni_encrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks)
 {
 	__m128i *k = (__m128i *) key->data;
 
@@ -162,7 +162,7 @@ void aes_ni_encrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t 
 	}
 }
 
-void aes_ni_decrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks)
+void aes128_ni_decrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t blocks)
 {
 	__m128i *k = (__m128i *) key->data;
 
@@ -179,7 +179,7 @@ void aes_ni_decrypt_ecb(uint8_t *out, aes_key *key, const uint8_t *in, uint32_t 
 	}
 }
 
-void aes_ni_encrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, uint32_t blocks)
+void aes128_ni_encrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, uint32_t blocks)
 {
 	__m128i *k = (__m128i *) key->data;
 	__m128i iv = _mm_loadu_si128((__m128i *) _iv);
@@ -200,7 +200,7 @@ void aes_ni_encrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, u
 	}
 }
 
-void aes_ni_decrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, uint32_t blocks)
+void aes128_ni_decrypt_cbc(uint8_t *out, aes_key *key, uint8_t *_iv, uint8_t *in, uint32_t blocks)
 {
 	__m128i *k = (__m128i *) key->data;
 	__m128i iv = _mm_loadu_si128((__m128i *) _iv);
@@ -238,7 +238,7 @@ static __m128i gfmulx(__m128i v)
 	return v;
 }
 
-void aes_ni_encrypt_xts(uint8_t *out, aes_key *key1, aes_key *key2,
+void aes128_ni_encrypt_xts(uint8_t *out, aes_key *key1, aes_key *key2,
                         uint8_t *_tweak, uint32_t spoint, uint8_t *in, uint32_t blocks)
 {
 	__m128i tweak = _mm_loadu_si128((__m128i *) _tweak);

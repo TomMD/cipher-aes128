@@ -31,6 +31,6 @@
 #include "block128.h"
 #include <stdint.h>
 
-void aes_generic_encrypt_block(aes_block *output, const aes_key *key, const aes_block *input);
-void aes_generic_decrypt_block(aes_block *output, const aes_key *key, const aes_block *input);
-void aes_generic_init(aes_key *key, const uint8_t *origkey, uint8_t size);
+void aes128_generic_encrypt_block(aes_block *output, const aes_key *key, const aes_block *input);
+void aes128_generic_decrypt_block(aes_block *output, const aes_key *key, const aes_block *input);
+void aes128_generic_init(aes_key *key, const uint8_t *origkey, uint8_t size);
