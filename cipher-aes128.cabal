@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                cipher-aes128
-version:             0.2.4
+version:             0.2.5
 synopsis:            AES128 using AES-NI when available.
 description:         AES128 with crypto-api instances and a trampoline between Vincent Hanquez's C-based and x86 NI-based AES.  Patches welcome to add additional high-performance backends (ARM?)
 license:             BSD3
@@ -12,7 +12,7 @@ maintainer:          thomas.dubuisson@gmail.com
 copyright:           Thomas M. DuBuisson
 category:            Cryptography
 homepage:            https://github.com/TomMD/cipher-aes128
-bug-reports:         https://github.com/TomMD/cipher-aes128
+bug-reports:         https://github.com/TomMD/cipher-aes128/issues
 build-type:          Custom
 cabal-version:       >=1.12
 
