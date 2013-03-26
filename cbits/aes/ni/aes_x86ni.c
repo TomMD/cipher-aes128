@@ -27,6 +27,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#if defined(HAVE_AES_INTRINSICS) && !defined(AVOID_NI)
 
 #include <wmmintrin.h>
 #include <tmmintrin.h>
@@ -269,3 +270,5 @@ void aes128_ni_encrypt_xts(uint8_t *out, aes_key *key1, aes_key *key2,
 }
 
 #endif /* x86 */
+
+#endif /* HAVE_AES_INTRINSICS */
