@@ -21,9 +21,9 @@ void aes_gcm_full_decrypt( const AESKey *k
                          , uint8_t *ct, uint32_t ctLen
                          , uint8_t *pt, uint8_t *tag);
 void encrypt_ctr( const AESKey *key
-                , const uint8_t *iv
-                , uint8_t *dst
-                , const uint8_t *src
-                , uint32_t nr);
+                , const uint8_t *iv  /* 16 bytes buffer with the count */
+                , uint8_t *dst       /* 'len' byte buffer for output */
+                , const uint8_t *src /* 'len' bytes of input */
+                , uint32_t len);     /* Length in bytes */
 
 #endif
