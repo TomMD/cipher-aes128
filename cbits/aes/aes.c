@@ -362,22 +362,27 @@ static void gf_mul(block128 *a, block128 *b)
         a->q[1] = cpu_to_be64(a1);
 }
 
-void encrypt_ctr(const AESKey *key, const uint8_t *iv, uint8_t *output, const uint8_t *input, uint32_t len)
+void encrypt_ctr(const AESKey *key, const uint8_t *iv, uint8_t *newIV, uint8_t *output, const uint8_t *input, uint32_t len)
 {
-        aes_block block, o;
+        aes_block *block, o;
         uint32_t nb_blocks = len / 16;
         int i;
 
         /* preload IV in block */
-        block128_copy(&block, (aes_block *)iv);
+        if(NULL != newIV)
+            block = (aes_block*) newIV;
+        else
+            block = alloca(sizeof(aes_block));
 
-        for ( ; nb_blocks-- > 0; block128_inc_be(&block), output += 16, input += 16) {
-                encrypt_ecb(key, (uint8_t *)&o, (uint8_t *)&block, 1);
+        block128_copy(block, (aes_block *)iv);
+
+        for ( ; nb_blocks-- > 0; block128_inc_be(block), output += 16, input += 16) {
+                encrypt_ecb(key, (uint8_t *)&o, (uint8_t *)block, 1);
                 block128_vxor((block128 *) output, &o, (block128 *) input);
         }
 
         if ((len % 16) != 0) {
-                encrypt_ecb(key, (uint8_t *)&o, (uint8_t *)&block, 1);
+                encrypt_ecb(key, (uint8_t *)&o, (uint8_t *)block, 1);
                 for (i = 0; i < (len % 16); i++) {
                         *output = ((uint8_t *) &o)[i] ^ *input;
                         output += 1;

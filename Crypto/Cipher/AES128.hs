@@ -4,9 +4,12 @@ module Crypto.Cipher.AES128
 
 import Crypto.Cipher.AES128.Internal
 import Crypto.Classes
+import Crypto.Types
+import Control.Monad (when)
 import Data.Serialize
 import Data.Tagged
 import Foreign.Ptr
+import Foreign.ForeignPtr
 import System.IO.Unsafe
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
@@ -41,6 +44,17 @@ instance BlockCipher AESKey where
         B.unsafeUseAsCStringLen b $ \(inP,len) -> do
          B.create (B.length b) $ \outP -> do
             decryptECB k (castPtr outP) (castPtr inP) (len`div`blkSize)
+    ctr k (IV bs) pt = unsafePerformIO $ do
+        B.unsafeUseAsCStringLen pt $ \(inP, len) -> do
+         B.unsafeUseAsCStringLen bs $ \(ivP, ivLen) -> do
+            when (ivLen /= (blockSizeBytes .::. k))
+                (error "Cipher-AES128: IV is too short!  They type system would have/should have caught this if you didn't use the IV constructor...")
+            newIVFP <- B.mallocByteString ivLen
+            ct <- B.create len $ \outP -> withForeignPtr newIVFP $ \newIVP -> do
+                encryptCTR k (castPtr ivP) (castPtr newIVP) (castPtr outP) (castPtr inP) len
+            let newIV = B.fromForeignPtr newIVFP 0 ivLen
+            return (ct,IV newIV)
+    unCtr = ctr
 
 blkSize :: Int
 blkSize = 16
