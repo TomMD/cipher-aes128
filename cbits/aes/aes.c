@@ -362,7 +362,7 @@ static void gf_mul(block128 *a, block128 *b)
         a->q[1] = cpu_to_be64(a1);
 }
 
-void encrypt_ctr(AESKey *key, uint8_t *iv, uint8_t *output, uint8_t *input, uint32_t len)
+void encrypt_ctr(const AESKey *key, const uint8_t *iv, uint8_t *output, const uint8_t *input, uint32_t len)
 {
         aes_block block, o;
         uint32_t nb_blocks = len / 16;
