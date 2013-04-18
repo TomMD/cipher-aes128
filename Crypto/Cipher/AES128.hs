@@ -48,7 +48,7 @@ instance BlockCipher AESKey where
         B.unsafeUseAsCStringLen pt $ \(inP, len) -> do
          B.unsafeUseAsCStringLen bs $ \(ivP, ivLen) -> do
             when (ivLen /= (blockSizeBytes .::. k))
-                (error "Cipher-AES128: IV is too short!  They type system would have/should have caught this if you didn't use the IV constructor...")
+                (error "Cipher-AES128: IV wrong length!  They type system would have/should have caught this if you didn't use the IV constructor...")
             newIVFP <- B.mallocByteString ivLen
             ct <- B.create len $ \outP -> withForeignPtr newIVFP $ \newIVP -> do
                 encryptCTR k (castPtr ivP) (castPtr newIVP) (castPtr outP) (castPtr inP) len
