@@ -29,7 +29,7 @@ library
   exposed-modules:     Crypto.Cipher.AES128, Crypto.Cipher.AES128.Internal
   build-depends:       base >=4.5 && < 5,
                        bytestring,
-                       crypto-api,
+                       crypto-api >= 0.11,
                        tagged,
                        cereal
   ghc-options:         -Wall -O2
@@ -43,3 +43,15 @@ library
 source-repository head
   type:         git
   location:     https://github.com/TomMD/cipher-aes128
+
+benchmark bench
+  type:         exitcode-stdio-1.0
+  hs-source-dirs:       . Benchmark
+  main-is:              bench.hs
+  build-depends:        base < 5, criterion, crypto-api, entropy, bytestring, tagged, cereal
+  ghc-options:          -O2
+  include-dirs:        cbits/include
+  c-sources:              ./cbits/aes/aes.c
+                        , ./cbits/aes/ni/aes_x86ni.c
+                        , ./cbits/aes/generic/aes_generic.c
+  cc-options:          -O3
