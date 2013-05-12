@@ -30,7 +30,7 @@ instance Serialize AESKey where
 instance BlockCipher AESKey where
     blockSize = Tagged 128
     keyLength = Tagged 128
-    buildKey bs 
+    buildKey bs
       | B.length bs >= 16 = unsafePerformIO $
           B.unsafeUseAsCString bs $ \ptr -> do
             k <- generateKey (castPtr ptr)

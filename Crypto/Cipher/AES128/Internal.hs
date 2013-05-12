@@ -79,15 +79,16 @@ blkSzC = 16
 generateKey :: Ptr Word64 -- ^ Buffer of 16 bytes of key material
             -> IO AESKey
 generateKey keyPtr  = do
-    k <- c_allocate_key128
-    c_generate_key128 k (castPtr keyPtr)
     raw <- do
             a <- peekLE (castPtr keyPtr)
             let keyPtr2 = (castPtr keyPtr) `plusPtr` sizeOf a
             b <- peekLE keyPtr2
-            return (RKey a b)
+            return (RKey b a)
+    k <- c_allocate_key128
+    c_generate_key128 k (castPtr keyPtr)
     fmap (AESKey raw) (newForeignPtr c_free_key128 k)
  where
+     peekLE :: Ptr Word8 -> IO Word64
      peekLE p = do
         a1 <- peekElemOff p 0
         a2 <- peekElemOff p 1
@@ -97,9 +98,10 @@ generateKey keyPtr  = do
         a6 <- peekElemOff p 5
         a7 <- peekElemOff p 6
         a8 <- peekElemOff p 7
-        let a = (a1 `shiftL` 56) .|. (a2 `shiftL` 48) .|. (a3 `shiftL` 40) .|.
-                (a4 `shiftL` 32) .|. (a5 `shiftL` 24) .|. (a6 `shiftL` 16) .|.
-                (a7 `shiftL` 8)  .|. a8
+        let f n s = fromIntegral n `shiftL` s
+        let a = (f a1 56) .|. (f a2 48) .|. (f a3 40) .|.
+                (f a4 32) .|. (f a5 24) .|. (f a6 16) .|.
+                (f a7 8)  .|. fromIntegral a8
         return a
 {-# INLINE generateKey #-}
 
