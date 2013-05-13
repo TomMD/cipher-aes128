@@ -376,12 +376,14 @@ void encrypt_ctr(const AESKey *key, const uint8_t *iv, uint8_t *newIV, uint8_t *
 
         block128_copy(block, (aes_block *)iv);
 
-        for ( ; nb_blocks-- > 0; block128_inc_be(block), output += 16, input += 16) {
+        for ( ; nb_blocks-- > 0; output += 16, input += 16) {
+                block128_inc_be(block);
                 encrypt_ecb(key, (uint8_t *)&o, (uint8_t *)block, 1);
                 block128_vxor((block128 *) output, &o, (block128 *) input);
         }
 
         if ((len % 16) != 0) {
+                block128_inc_be(block);
                 encrypt_ecb(key, (uint8_t *)&o, (uint8_t *)block, 1);
                 for (i = 0; i < (len % 16); i++) {
                         *output = ((uint8_t *) &o)[i] ^ *input;
