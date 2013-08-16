@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 import Distribution.Simple
 import Distribution.Simple.LocalBuildInfo
 import Distribution.Simple.Setup
@@ -9,7 +8,6 @@ import Distribution.Verbosity
 import System.Process
 import System.Directory
 import System.Exit
-import Language.Haskell.TH (appE, varE, mkName, conE)
 
 main = defaultMainWithHooks hk
  where
@@ -32,12 +30,8 @@ aesArgsHC :: [String]
 aesArgsHC = map ("-optc" ++) aesArgs
 
 canUseAesIntrinsicsFlag :: FilePath -> IO Bool
-canUseAesIntrinsicsFlag cc =
-        -- withTempDirectory normal False "" "testRDRAND" $ \tmpDir -> do
-        $(if cabalVersion >= Version [1,17,0] []
-            then  appE (appE (varE $ mkName "withTempDirectory") (varE 'normal)) (conE (mkName "False"))
-            else  appE (varE $ mkName "withTempDirectory") (varE 'normal)) "" "testRDRAND" $ \tmpDir -> do
-
+canUseAesIntrinsicsFlag cc = do
+        withTempDirectory normal "" "testIntrinsic" $ \tmpDir -> do
         writeFile (tmpDir ++ "/testIntrinsic.c")
                 (unlines        [ "#include <wmmintrin.h>"
                                 , "int main() {"
