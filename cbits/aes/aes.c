@@ -8,7 +8,7 @@
 #include "aes_x86ni.h"
 #endif
 #include "bitfn.h"
-static void gf_mul(block128 *a, block128 *b);
+static void gf_mul(block128 *a, const block128 *b);
 
 #ifdef TRY_NI
 /**
@@ -30,6 +30,13 @@ AESKey *allocate_key128()
         void *k=NULL;
         k = (void *)malloc(sizeof(aes_key));
         return k;
+}
+
+aes_gcm *allocate_gcm()
+{
+    void *g=NULL;
+    g = (void *)malloc(sizeof(aes_gcm));
+    return g;
 }
 
 /* Generate Key */
@@ -76,6 +83,12 @@ void free_key128(AESKey *k)
 {
         memset(k, 0, sizeof(AESKey));
         free(k);
+}
+
+void free_gcm(aes_gcm *g)
+{
+        memset(g, 0, sizeof(aes_gcm));
+        free(g);
 }
 
 /* ECB Encrypt */
@@ -168,89 +181,118 @@ void decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32
 
 
 /* GCM */
-static void gcm_ghash_add(aes_gcm *gcm, block128 *b)
+static void gcm_ghash_add(const aes_gcm *gcm, aes_gcm_ctx *ctx, block128 *b)
 {
-        block128_xor(&gcm->tag, b);
-        gf_mul(&gcm->tag, &gcm->h);
+        block128_xor(&ctx->tag, b);
+        gf_mul(&ctx->tag, &gcm->h);
 }
 
-static void aes_gcm_init(aes_gcm *gcm, const aes_key *key, uint8_t *iv, uint32_t len)
+void aes_gcm_ctx_init(aes_gcm_ctx *ctx, const aes_gcm *gcm, const uint8_t *iv, uint32_t len)
 {
-        gcm->length_aad = 0;
-        gcm->length_input = 0;
+        ctx->length_aad = 0;
+        ctx->length_input = 0;
+        block128_zero(&ctx->tag);
 
+        block128_zero(&ctx->iv);
+        if (len == 12) {
+                block128_copy_bytes(&ctx->iv, iv, 12);
+                ctx->iv.b[15] = 0x01;
+        } else {
+                uint32_t origlen = len << 3;
+                int i;
+                for (; len >= 16; len -= 16, iv += 16) {
+                        block128_xor(&ctx->iv, (block128 *) iv);
+                        gf_mul(&ctx->iv, &gcm->h);
+                }
+                if (len > 0) {
+                        block128_xor_bytes(&ctx->iv, iv, len);
+                        gf_mul(&ctx->iv, &gcm->h);
+                }
+                for (i = 15; origlen; --i, origlen >>= 8)
+                        ctx->iv.b[i] ^= (uint8_t) origlen;
+                gf_mul(&ctx->iv, &gcm->h);
+        }
+
+        block128_copy(&ctx->civ, &ctx->iv);
+}
+
+void aes_gcm_init(aes_gcm *gcm, const aes_key *key)
+{
         block128_zero(&gcm->h);
-        block128_zero(&gcm->tag);
-        block128_zero(&gcm->iv);
 
         memcpy(&gcm->key, key, sizeof(aes_key));
 
         /* prepare H : encrypt_K(0^128) */
         encrypt_ecb(key, (uint8_t *)&gcm->h, (const uint8_t *)&gcm->h, 1);
-
-        if (len == 12) {
-                block128_copy_bytes(&gcm->iv, iv, 12);
-                gcm->iv.b[15] = 0x01;
-        } else {
-                uint32_t origlen = len << 3;
-                int i;
-                for (; len >= 16; len -= 16, iv += 16) {
-                        block128_xor(&gcm->iv, (block128 *) iv);
-                        gf_mul(&gcm->iv, &gcm->h);
-                }
-                if (len > 0) {
-                        block128_xor_bytes(&gcm->iv, iv, len);
-                        gf_mul(&gcm->iv, &gcm->h);
-                }
-                for (i = 15; origlen; --i, origlen >>= 8)
-                        gcm->iv.b[i] ^= (uint8_t) origlen;
-                gf_mul(&gcm->iv, &gcm->h);
-        }
-
-        block128_copy(&gcm->civ, &gcm->iv);
 }
 
-static void aes_gcm_aad(aes_gcm *gcm, uint8_t *input, uint32_t length)
+void aes_gcm_aad(const aes_gcm *gcm, aes_gcm_ctx *ctx, uint8_t *input, uint32_t length)
 {
-        gcm->length_aad += length;
+        ctx->length_aad += length;
         for (; length >= 16; input += 16, length -= 16) {
-                gcm_ghash_add(gcm, (block128 *) input);
+                gcm_ghash_add(gcm, ctx, (block128 *) input);
         }
         if (length > 0) {
                 aes_block tmp;
                 block128_zero(&tmp);
                 block128_copy_bytes(&tmp, input, length);
-                gcm_ghash_add(gcm, &tmp);
+                gcm_ghash_add(gcm, ctx, &tmp);
         }
 
 }
 
-static void aes_gcm_encrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint32_t length)
+void aes_gcm_enc_finish( uint8_t *output, uint8_t *tag
+                       , const aes_gcm *gcm
+                       , uint8_t *iv, uint32_t ivLen
+                       , uint8_t *input, uint32_t inputLen
+                       , uint8_t *aad, uint32_t aadLen)
+{
+    aes_gcm_ctx ctx;
+    aes_gcm_ctx_init(&ctx, gcm, iv, ivLen);
+    aes_gcm_encrypt(output, gcm, &ctx, input, inputLen);
+    aes_gcm_aad(gcm, &ctx, aad, aadLen);
+    aes_gcm_finish(tag, gcm, &ctx);
+}
+
+void aes_gcm_dec_finish( uint8_t *output, uint8_t *tag
+                       , const aes_gcm *gcm
+                       , uint8_t *iv, uint32_t ivLen
+                       , uint8_t *input, uint32_t inputLen
+                       , uint8_t *aad, uint32_t aadLen)
+{
+    aes_gcm_ctx ctx;
+    aes_gcm_ctx_init(&ctx, gcm, iv, ivLen);
+    aes_gcm_decrypt(output, gcm, &ctx, input, inputLen);
+    aes_gcm_aad(gcm, &ctx, aad, aadLen);
+    aes_gcm_finish(tag, gcm, &ctx);
+}
+
+void aes_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length)
 {
         aes_block out;
 
-        gcm->length_input += length;
+        ctx->length_input += length;
         for (; length >= 16; input += 16, output += 16, length -= 16) {
-                block128_inc_be(&gcm->civ);
+                block128_inc_be(&ctx->civ);
 
-                encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&gcm->civ, 1);
+                encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&ctx->civ, 1);
                 block128_xor(&out, (block128 *) input);
-                gcm_ghash_add(gcm, &out);
+                gcm_ghash_add(gcm, ctx, &out);
                 block128_copy((block128 *) output, &out);
         }
         if (length > 0) {
                 aes_block tmp;
                 int i;
 
-                block128_inc_be(&gcm->civ);
+                block128_inc_be(&ctx->civ);
                 /* create e(civ) in out */
-                encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&gcm->civ, 1);
+                encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&ctx->civ, 1);
                 /* initialize a tmp as input and xor it to e(civ) */
                 block128_zero(&tmp);
                 block128_copy_bytes(&tmp, input, length);
                 block128_xor_bytes(&tmp, out.b, length); 
 
-                gcm_ghash_add(gcm, &tmp);
+                gcm_ghash_add(gcm, ctx, &tmp);
 
                 for (i = 0; i < length; i++) {
                         output[i] = tmp.b[i];
@@ -258,16 +300,16 @@ static void aes_gcm_encrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint3
         }
 }
 
-static void aes_gcm_decrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint32_t length)
+void aes_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length)
 {
         aes_block out;
 
-        gcm->length_input += length;
+        ctx->length_input += length;
         for (; length >= 16; input += 16, output += 16, length -= 16) {
-                block128_inc_be(&gcm->civ);
+                block128_inc_be(&ctx->civ);
 
-                encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&gcm->civ, 1);
-                gcm_ghash_add(gcm, (block128 *) input);
+                encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&ctx->civ, 1);
+                gcm_ghash_add(gcm, ctx, (block128 *) input);
                 block128_xor(&out, (block128 *) input);
                 block128_copy((block128 *) output, &out);
         }
@@ -275,13 +317,13 @@ static void aes_gcm_decrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint3
                 aes_block tmp;
                 int i;
 
-                block128_inc_be(&gcm->civ);
+                block128_inc_be(&ctx->civ);
 
                 block128_zero(&tmp);
                 block128_copy_bytes(&tmp, input, length);
-                gcm_ghash_add(gcm, &tmp);
+                gcm_ghash_add(gcm, ctx, &tmp);
 
-                encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&gcm->civ, 1);
+                encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&ctx->civ, 1);
                 block128_xor_bytes(&tmp, out.b, length); 
 
                 for (i = 0; i < length; i++) {
@@ -290,21 +332,21 @@ static void aes_gcm_decrypt(uint8_t *output, aes_gcm *gcm, uint8_t *input, uint3
         }
 }
 
-static void aes_gcm_finish(uint8_t *tag, aes_gcm *gcm)
+void aes_gcm_finish(uint8_t *tag, const aes_gcm *gcm, aes_gcm_ctx *ctx)
 {
         aes_block lblock;
         int i;
 
         /* tag = (tag-1 xor (lenbits(a) | lenbits(c)) ) . H */
-        lblock.q[0] = cpu_to_be64(gcm->length_aad << 3);
-        lblock.q[1] = cpu_to_be64(gcm->length_input << 3);
-        gcm_ghash_add(gcm, &lblock);
+        lblock.q[0] = cpu_to_be64(ctx->length_aad << 3);
+        lblock.q[1] = cpu_to_be64(ctx->length_input << 3);
+        gcm_ghash_add(gcm, ctx, &lblock);
 
-        encrypt_ecb(&gcm->key, (uint8_t *)&lblock, (const uint8_t*)&gcm->iv, 1);
-        block128_xor(&gcm->tag, &lblock);
+        encrypt_ecb(&gcm->key, (uint8_t *)&lblock, (const uint8_t*)&ctx->iv, 1);
+        block128_xor(&ctx->tag, &lblock);
 
         for (i = 0; i < 16; i++) {
-                tag[i] = gcm->tag.b[i];
+                tag[i] = ctx->tag.b[i];
         }
 }
 
@@ -314,11 +356,13 @@ void aes_gcm_full_encrypt( const AESKey *k
                          , uint8_t *pt, uint32_t ptLen
                          , uint8_t *ct, uint8_t *tag)
 {
+    aes_gcm_ctx ctx;
     aes_gcm gcm;
-    aes_gcm_init(&gcm, k, iv, ivLen);
-    aes_gcm_aad(&gcm, aad, aadLen);
-    aes_gcm_encrypt(ct, &gcm,  pt, ptLen);
-    aes_gcm_finish(tag, &gcm);
+    aes_gcm_init(&gcm, k);
+    aes_gcm_ctx_init(&ctx, &gcm, iv, ivLen);
+    aes_gcm_aad(&gcm, &ctx, aad, aadLen);
+    aes_gcm_encrypt(ct, &gcm, &ctx, pt, ptLen);
+    aes_gcm_finish(tag, &gcm, &ctx);
 }
 
 void aes_gcm_full_decrypt( const AESKey *k
@@ -328,10 +372,12 @@ void aes_gcm_full_decrypt( const AESKey *k
                          , uint8_t *pt, uint8_t *tag)
 {
     aes_gcm gcm;
-    aes_gcm_init(&gcm, k, iv, ivLen);
-    aes_gcm_aad(&gcm, aad, aadLen);
-    aes_gcm_decrypt(pt, &gcm,  ct, ctLen);
-    aes_gcm_finish(tag, &gcm);
+    aes_gcm_ctx ctx;
+    aes_gcm_init(&gcm, k);
+    aes_gcm_ctx_init(&ctx, &gcm, iv, ivLen);
+    aes_gcm_aad(&gcm, &ctx, aad, aadLen);
+    aes_gcm_decrypt(pt, &gcm, &ctx, ct, ctLen);
+    aes_gcm_finish(tag, &gcm, &ctx);
 }
 
 
@@ -340,7 +386,7 @@ void aes_gcm_full_decrypt( const AESKey *k
  * to speed up the multiplication.
  * TODO: optimise with tables
  */
-static void gf_mul(block128 *a, block128 *b)
+static void gf_mul(block128 *a, const block128 *b)
 {
         uint64_t a0, a1, v0, v1;
         int i, j;

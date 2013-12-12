@@ -40,7 +40,7 @@ typedef union {
        uint8_t  b[16];
 } block128;
 
-static inline void block128_copy_bytes(block128 *block, uint8_t *src, uint32_t len)
+static inline void block128_copy_bytes(block128 *block, const uint8_t *src, uint32_t len)
 {
 	int i;
 	for (i = 0; i < len; i++) block->b[i] = src[i];
@@ -68,7 +68,7 @@ static inline void block128_vxor(block128 *d, block128 *s1, block128 *s2)
 	d->q[1] = s1->q[1] ^ s2->q[1];
 }
 
-static inline void block128_xor_bytes(block128 *block, uint8_t *src, uint32_t len)
+static inline void block128_xor_bytes(block128 *block, const uint8_t *src, uint32_t len)
 {
 	int i;
 	for (i = 0; i < len; i++) block->b[i] ^= src[i];

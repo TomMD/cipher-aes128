@@ -20,6 +20,25 @@ void aes_gcm_full_decrypt( const AESKey *k
                          , uint8_t *aad, uint32_t aadLen
                          , uint8_t *ct, uint32_t ctLen
                          , uint8_t *pt, uint8_t *tag);
+void free_gcm(aes_gcm *g);
+aes_gcm *allocate_gcm();
+void aes_gcm_init(aes_gcm *gcm, const aes_key *key);
+void aes_gcm_init_ctx(aes_gcm_ctx *ctx, const aes_gcm *gcm, uint8_t *iv, uint32_t len);
+void aes_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length);
+void aes_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length);
+void aes_gcm_aad(const aes_gcm *gcm, aes_gcm_ctx *ctx, uint8_t *input, uint32_t length);
+void aes_gcm_finish(uint8_t *tag, const aes_gcm *gcm, aes_gcm_ctx *ctx);
+void aes_gcm_enc_finish( uint8_t *output, uint8_t *tag
+                       , const aes_gcm *gcm
+                       , uint8_t *iv, uint32_t ivLen
+                       , uint8_t *input, uint32_t inputLen
+                       , uint8_t *aad, uint32_t aadLen);
+void aes_gcm_dec_finish( uint8_t *output, uint8_t *tag
+                       , const aes_gcm *gcm
+                       , uint8_t *iv, uint32_t ivLen
+                       , uint8_t *input, uint32_t inputLen
+                       , uint8_t *aad, uint32_t aadLen);
+
 void encrypt_ctr( const AESKey *key
                 , const uint8_t *iv  /* 16 bytes buffer with the count */
                 , uint8_t *newIV     /* the return buffer for the next IV (or NULL) */

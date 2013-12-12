@@ -13,13 +13,16 @@ typedef struct {
 
 /* size = 4*16+2*8+aes_key=456 = 536 */
 typedef struct {
-    aes_block tag;
-    aes_block h;
-    aes_block iv;
-    aes_block civ;
-    uint64_t length_aad;
-    uint64_t length_input;
+    aes_block h;        // init
     aes_key key;
 } aes_gcm;
+
+typedef struct {
+    aes_block iv;
+    aes_block civ;
+    aes_block tag;      // finish, aad, encrypt,decrypt
+    uint64_t length_input;
+    uint64_t length_aad;
+} aes_gcm_ctx;
 
 #endif

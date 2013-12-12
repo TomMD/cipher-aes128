@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Crypto.Cipher.AES128
   ( AESKey
   ) where
