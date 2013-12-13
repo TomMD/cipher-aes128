@@ -98,7 +98,7 @@ static void (*encrypt_ecb_ptr)(const AESKey *, uint8_t *, const uint8_t *, const
 
 static void encrypt_ecb_ni(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
-        aes128_ni_encrypt_ecb(dst, (aes_key *)k, src, nr);
+        aes128_ni_encrypt_ecb128((aes_block *)dst, (aes_key *)k, (aes_block *)src, nr);
 }
 
 static void encrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
@@ -148,7 +148,7 @@ void decrypt_ecb(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32
 
 static void decrypt_ecb_ni(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
 {
-        aes128_ni_decrypt_ecb(dst, (aes_key *)k, src, nr);
+        aes128_ni_decrypt_ecb128((aes_block *)dst, (aes_key *)k, (aes_block *)src, nr);
 }
 
 static void decrypt_ecb_generic(const AESKey *k, uint8_t *dst, const uint8_t *src, const uint32_t nr)
@@ -187,7 +187,7 @@ static void gcm_ghash_add(const aes_gcm *gcm, aes_gcm_ctx *ctx, block128 *b)
         gf_mul(&ctx->tag, &gcm->h);
 }
 
-void aes_gcm_ctx_init(aes_gcm_ctx *ctx, const aes_gcm *gcm, const uint8_t *iv, uint32_t len)
+void aes128_gcm_ctx_init(aes_gcm_ctx *ctx, const aes_gcm *gcm, const uint8_t *iv, uint32_t len)
 {
         ctx->length_aad = 0;
         ctx->length_input = 0;
@@ -216,7 +216,7 @@ void aes_gcm_ctx_init(aes_gcm_ctx *ctx, const aes_gcm *gcm, const uint8_t *iv, u
         block128_copy(&ctx->civ, &ctx->iv);
 }
 
-void aes_gcm_init(aes_gcm *gcm, const aes_key *key)
+void aes128_gcm_init(aes_gcm *gcm, const aes_key *key)
 {
         block128_zero(&gcm->h);
 
@@ -226,7 +226,7 @@ void aes_gcm_init(aes_gcm *gcm, const aes_key *key)
         encrypt_ecb(key, (uint8_t *)&gcm->h, (const uint8_t *)&gcm->h, 1);
 }
 
-void aes_gcm_aad(const aes_gcm *gcm, aes_gcm_ctx *ctx, uint8_t *input, uint32_t length)
+void aes128_gcm_aad(const aes_gcm *gcm, aes_gcm_ctx *ctx, uint8_t *input, uint32_t length)
 {
         ctx->length_aad += length;
         for (; length >= 16; input += 16, length -= 16) {
@@ -241,33 +241,33 @@ void aes_gcm_aad(const aes_gcm *gcm, aes_gcm_ctx *ctx, uint8_t *input, uint32_t 
 
 }
 
-void aes_gcm_enc_finish( uint8_t *output, uint8_t *tag
+void aes128_gcm_enc_finish( uint8_t *output, uint8_t *tag
                        , const aes_gcm *gcm
                        , uint8_t *iv, uint32_t ivLen
                        , uint8_t *input, uint32_t inputLen
                        , uint8_t *aad, uint32_t aadLen)
 {
     aes_gcm_ctx ctx;
-    aes_gcm_ctx_init(&ctx, gcm, iv, ivLen);
-    aes_gcm_encrypt(output, gcm, &ctx, input, inputLen);
-    aes_gcm_aad(gcm, &ctx, aad, aadLen);
-    aes_gcm_finish(tag, gcm, &ctx);
+    aes128_gcm_ctx_init(&ctx, gcm, iv, ivLen);
+    aes128_gcm_encrypt(output, gcm, &ctx, input, inputLen);
+    aes128_gcm_aad(gcm, &ctx, aad, aadLen);
+    aes128_gcm_finish(tag, gcm, &ctx);
 }
 
-void aes_gcm_dec_finish( uint8_t *output, uint8_t *tag
+void aes128_gcm_dec_finish( uint8_t *output, uint8_t *tag
                        , const aes_gcm *gcm
                        , uint8_t *iv, uint32_t ivLen
                        , uint8_t *input, uint32_t inputLen
                        , uint8_t *aad, uint32_t aadLen)
 {
     aes_gcm_ctx ctx;
-    aes_gcm_ctx_init(&ctx, gcm, iv, ivLen);
-    aes_gcm_decrypt(output, gcm, &ctx, input, inputLen);
-    aes_gcm_aad(gcm, &ctx, aad, aadLen);
-    aes_gcm_finish(tag, gcm, &ctx);
+    aes128_gcm_ctx_init(&ctx, gcm, iv, ivLen);
+    aes128_gcm_decrypt(output, gcm, &ctx, input, inputLen);
+    aes128_gcm_aad(gcm, &ctx, aad, aadLen);
+    aes128_gcm_finish(tag, gcm, &ctx);
 }
 
-void aes_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length)
+void aes128_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length)
 {
         aes_block out;
 
@@ -300,7 +300,7 @@ void aes_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, cons
         }
 }
 
-void aes_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length)
+void aes128_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length)
 {
         aes_block out;
 
@@ -332,7 +332,7 @@ void aes_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, cons
         }
 }
 
-void aes_gcm_finish(uint8_t *tag, const aes_gcm *gcm, aes_gcm_ctx *ctx)
+void aes128_gcm_finish(uint8_t *tag, const aes_gcm *gcm, aes_gcm_ctx *ctx)
 {
         aes_block lblock;
         int i;
@@ -350,7 +350,7 @@ void aes_gcm_finish(uint8_t *tag, const aes_gcm *gcm, aes_gcm_ctx *ctx)
         }
 }
 
-void aes_gcm_full_encrypt( const AESKey *k
+void aes128_gcm_full_encrypt( const AESKey *k
                          , uint8_t *iv, uint32_t ivLen
                          , uint8_t *aad, uint32_t aadLen
                          , uint8_t *pt, uint32_t ptLen
@@ -358,14 +358,14 @@ void aes_gcm_full_encrypt( const AESKey *k
 {
     aes_gcm_ctx ctx;
     aes_gcm gcm;
-    aes_gcm_init(&gcm, k);
-    aes_gcm_ctx_init(&ctx, &gcm, iv, ivLen);
-    aes_gcm_aad(&gcm, &ctx, aad, aadLen);
-    aes_gcm_encrypt(ct, &gcm, &ctx, pt, ptLen);
-    aes_gcm_finish(tag, &gcm, &ctx);
+    aes128_gcm_init(&gcm, k);
+    aes128_gcm_ctx_init(&ctx, &gcm, iv, ivLen);
+    aes128_gcm_aad(&gcm, &ctx, aad, aadLen);
+    aes128_gcm_encrypt(ct, &gcm, &ctx, pt, ptLen);
+    aes128_gcm_finish(tag, &gcm, &ctx);
 }
 
-void aes_gcm_full_decrypt( const AESKey *k
+void aes128_gcm_full_decrypt( const AESKey *k
                          , uint8_t *iv, uint32_t ivLen
                          , uint8_t *aad, uint32_t aadLen
                          , uint8_t *ct, uint32_t ctLen
@@ -373,11 +373,11 @@ void aes_gcm_full_decrypt( const AESKey *k
 {
     aes_gcm gcm;
     aes_gcm_ctx ctx;
-    aes_gcm_init(&gcm, k);
-    aes_gcm_ctx_init(&ctx, &gcm, iv, ivLen);
-    aes_gcm_aad(&gcm, &ctx, aad, aadLen);
-    aes_gcm_decrypt(pt, &gcm, &ctx, ct, ctLen);
-    aes_gcm_finish(tag, &gcm, &ctx);
+    aes128_gcm_init(&gcm, k);
+    aes128_gcm_ctx_init(&ctx, &gcm, iv, ivLen);
+    aes128_gcm_aad(&gcm, &ctx, aad, aadLen);
+    aes128_gcm_decrypt(pt, &gcm, &ctx, ct, ctLen);
+    aes128_gcm_finish(tag, &gcm, &ctx);
 }
 
 

@@ -50,13 +50,13 @@ foreign import ccall unsafe "aes/aes.h decrypt_ecb"
 foreign import ccall unsafe "aes/aes.h allocate_gcm"
     c_gcm_allocate :: IO AESGcmPtr
 
-foreign import ccall unsafe "aes/aes.h aes_gcm_init"
+foreign import ccall unsafe "aes/aes.h aes128_gcm_init"
     c_gcm_init :: AESGcmPtr
                -> AESKeyPtr
                -> Ptr Word8 -> Word32 -- ^ IV and length
                -> IO ()
 
-foreign import ccall unsafe "aes/aes.h aes_gcm_enc_finish"
+foreign import ccall unsafe "aes/aes.h aes128_gcm_enc_finish"
     c_gcm_encrypt :: Ptr Word8           -- Output
                   -> Ptr Word8           -- Tag
                   -> AESGcmPtr
@@ -65,7 +65,7 @@ foreign import ccall unsafe "aes/aes.h aes_gcm_enc_finish"
                   -> Ptr Word8 -> Word32 -- AAD and length
                   -> IO ()
 
-foreign import ccall unsafe "aes/aes.h aes_gcm_dec_finish"
+foreign import ccall unsafe "aes/aes.h aes128_gcm_dec_finish"
     c_gcm_decrypt :: Ptr Word8           -- Output
                   -> Ptr Word8           -- Tag
                   -> AESGcmPtr
