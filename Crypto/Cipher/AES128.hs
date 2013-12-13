@@ -45,6 +45,8 @@ instance BlockCipher AESKey where
         B.unsafeUseAsCStringLen b $ \(inP,len) -> do
          B.create (B.length b) $ \outP -> do
             decryptECB k (castPtr outP) (castPtr inP) (len`div`blkSize)
+    ecb   = encryptBlock
+    unEcb = decryptBlock
     ctr k (IV bs) pt = unsafePerformIO $ do
         B.unsafeUseAsCStringLen pt $ \(inP, len) -> do
          B.unsafeUseAsCStringLen bs $ \(ivP, ivLen) -> do
