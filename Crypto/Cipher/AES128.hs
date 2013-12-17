@@ -57,6 +57,7 @@ instance BlockCipher AESKey where
                 encryptCTR k (castPtr ivP) (castPtr newIVP) (castPtr outP) (castPtr inP) len
             let newIV = B.fromForeignPtr newIVFP 0 ivLen
             return (ct,IV newIV)
+    {-# INLINE ctr #-}
     unCtr = ctr
 
 blkSize :: Int

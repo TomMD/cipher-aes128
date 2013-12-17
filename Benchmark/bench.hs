@@ -12,7 +12,7 @@ import qualified Data.ByteString as B
 main = do
     let iv  = zeroIV
         ivV = B.replicate 16 0
-    pt <- getEntropy 16 -- (2^11)
+    pt <- getEntropy (2^11)
     k  <- buildKeyIO :: IO AESKey
     let kV = initAES (B.pack [0..15])
     defaultMain

@@ -226,7 +226,7 @@ void aes128_gcm_init(aes_gcm *gcm, const aes_key *key)
         encrypt_ecb(key, (uint8_t *)&gcm->h, (const uint8_t *)&gcm->h, 1);
 }
 
-void aes128_gcm_aad(const aes_gcm *gcm, aes_gcm_ctx *ctx, uint8_t *input, uint32_t length)
+static void aes128_gcm_aad(const aes_gcm *gcm, aes_gcm_ctx *ctx, uint8_t *input, uint32_t length)
 {
         ctx->length_aad += length;
         for (; length >= 16; input += 16, length -= 16) {
@@ -270,9 +270,11 @@ void aes128_gcm_dec_finish( uint8_t *output, uint8_t *tag
 void aes128_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length)
 {
         aes_block out;
+        uint32_t nr_blocks = length / 16;
+        length            -= nr_blocks *  16;
 
         ctx->length_input += length;
-        for (; length >= 16; input += 16, output += 16, length -= 16) {
+        for (; nr_blocks > 0; nr_blocks--, input += 16, output += 16) {
                 block128_inc_be(&ctx->civ);
 
                 encrypt_ecb(&gcm->key, (uint8_t *)&out, (const uint8_t *)&ctx->civ, 1);

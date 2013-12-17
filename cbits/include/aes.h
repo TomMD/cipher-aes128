@@ -26,7 +26,6 @@ void aes128_gcm_init(aes_gcm *gcm, const aes_key *key);
 void aes128_gcm_init_ctx(aes_gcm_ctx *ctx, const aes_gcm *gcm, uint8_t *iv, uint32_t len);
 void aes128_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length);
 void aes128_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, aes_gcm_ctx *ctx, const uint8_t *input, uint32_t length);
-void aes128_gcm_aad(const aes_gcm *gcm, aes_gcm_ctx *ctx, uint8_t *input, uint32_t length);
 void aes128_gcm_finish(uint8_t *tag, const aes_gcm *gcm, aes_gcm_ctx *ctx);
 void aes128_gcm_enc_finish( uint8_t *output, uint8_t *tag
                        , const aes_gcm *gcm
