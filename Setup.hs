@@ -13,10 +13,13 @@ main = defaultMainWithHooks hk
  where
  hk = simpleUserHooks { buildHook = \pd lbi uh bf -> do
                                         let ccProg = Program "gcc" undefined undefined undefined
-                                            mConf = lookupProgram ccProg (withPrograms lbi)
+                                            hcProg = Program "ghc" undefined undefined undefined
+                                            mConf  = lookupProgram ccProg (withPrograms lbi)
+                                            hcConf = lookupProgram hcProg (withPrograms lbi)
                                             err = error "Could not determine C compiler"
-                                            cc = locationPath . programLocation  . maybe err id $ mConf
-                                        b <- canUseAesIntrinsicsFlag cc
+                                            cc  = locationPath . programLocation  . maybe err id $ mConf
+                                            hc  = locationPath . programLocation  . maybe err id $ hcConf
+                                        b <- canUseAesIntrinsicsFlag hc
                                         let newWithPrograms1 = userSpecifyArgs "gcc" aesArgs (withPrograms lbi)
                                             newWithPrograms  = userSpecifyArgs "ghc" aesArgsHC newWithPrograms1
                                             lbiNew = if b then (lbi {withPrograms = newWithPrograms }) else lbi

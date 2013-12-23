@@ -34,7 +34,7 @@ flag test
 library
   default-language:    Haskell2010
   exposed-modules:     Crypto.Cipher.AES128, Crypto.Cipher.AES128.Internal
-  build-depends:       base >=4.5 && < 5,
+  build-depends:       base >=4.2 && < 5,
                        bytestring,
                        crypto-api >= 0.11,
                        tagged,
