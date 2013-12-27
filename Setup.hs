@@ -37,9 +37,9 @@ canUseAesIntrinsicsFlag cc = do
         withTempDirectory normal "" "testIntrinsic" $ \tmpDir -> do
         writeFile (tmpDir ++ "/testIntrinsic.c")
                 (unlines        [ "#include <wmmintrin.h>"
-                                , "int main() {"
+                                , "int real_main() {"
                                 , "return 0; }"
                                 ])
-        ec <- rawSystemExitCode normal cc ["-maes",tmpDir ++ "/testIntrinsic.c"]
+        ec <- rawSystemExitCode normal cc ["-c", "-optc-maes",tmpDir ++ "/testIntrinsic.c"]
         notice normal $ "Result of NI Intrinsics Test: " ++ show (ec == ExitSuccess)
         return (ec == ExitSuccess)
