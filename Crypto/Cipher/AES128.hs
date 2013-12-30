@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Crypto.Cipher.AES128
   ( AESKey128, AESKey192, AESKey256
+  , BlockCipher(..), buildKeyIO, zeroIV
   ) where
 
 import Crypto.Cipher.AES128.Internal
