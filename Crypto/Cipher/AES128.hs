@@ -5,7 +5,6 @@ module Crypto.Cipher.AES128
 
 import Crypto.Cipher.AES128.Internal
 import Crypto.Classes
-import Crypto.Types
 import Control.Monad (when)
 import Data.Serialize
 import Data.Tagged

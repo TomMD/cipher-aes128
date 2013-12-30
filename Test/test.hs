@@ -5,5 +5,5 @@ import Crypto.Cipher.AES128
 import "test-framework" Test.Framework
 
 main = do
-    ts <- makeAESTests (undefined :: AESKey)
+    ts <- makeAESTests (undefined :: AESKey128)
     defaultMain ts

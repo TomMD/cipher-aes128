@@ -146,8 +146,10 @@ void SIZED(tmd_aes_ni_encrypt_ctr)(uint8_t *output, aes_key *key, aes_block *_iv
                 m = _mm_xor_si128(m, tmp);
                 _mm_storeu_si128((__m128i *) &block.b, m);
                 memcpy(output, &block.b, part_block_len);
+                iv = _mm_add_epi64(iv, one);
         }
-        _mm_storeu_si128((__m128i *) newIV, iv);
+        __m128i tmpRet = _mm_shuffle_epi8(iv, bswap_mask);
+        _mm_storeu_si128((__m128i *) newIV, tmpRet);
 
         return ;
 }

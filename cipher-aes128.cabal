@@ -3,10 +3,12 @@
 
 name:                cipher-aes128
 version:             0.6
-synopsis:            AES128 using AES-NI when available.
-description:         AES128 with crypto-api instances and a trampoline between Vincent Hanquez's
-                     C-based and x86 NI-based AES.  Patches welcome to add additional
-                     high-performance backends (ARM?)
+synopsis:            AES and common modes using AES-NI when available.
+description:         Cipher-aes128 is an implementation of AES and common modes of operation.  It borrows Hanquez's C AES code (see 'cipher-aes') but
+                     is unique due to including compile-time detection of
+                     NI compiler support, a slightly more functional interface
+                     for GCM operations, exposure of 'Ptr' based operations via the .Internal module, and build-in crypto-api support.
+                     Cipher-aes128 was originally developed as "'cipher-aes' plus trampolines", which has since been adopted into cipher-aes.
 license:             BSD3
 license-file:        LICENSE
 author:              Thomas M. DuBuisson, Vincent Hanquez (See AUTHORS file)
@@ -30,7 +32,7 @@ library
   exposed-modules:     Crypto.Cipher.AES128, Crypto.Cipher.AES128.Internal
   build-depends:       base >=4.2 && < 5,
                        bytestring,
-                       crypto-api >= 0.11,
+                       crypto-api >= 0.13,
                        tagged,
                        cereal
   ghc-options:         -Wall -O2
@@ -38,7 +40,6 @@ library
   c-sources:           ./cbits/aes.c
                      , ./cbits/aes_generic.c
                      , ./cbits/aes_x86ni.c
-                     -- , ./cbits/aes_x86ni_impl.c
                      , ./cbits/cpu.c
                      , ./cbits/gf.c
   include-dirs:        cbits/
@@ -58,10 +59,9 @@ benchmark bench
   c-sources:           ./cbits/aes.c
                      , ./cbits/aes_generic.c
                      , ./cbits/aes_x86ni.c
-                     -- , ./cbits/aes_x86ni_impl.c
                      , ./cbits/cpu.c
                      , ./cbits/gf.c
-  -- None by default cc-options:          -mssse3 -maes -mpclmul
+  cc-options:          -mssse3 -maes -mpclmul
 
 Executable aes128_test
   if !flag(test)
@@ -72,3 +72,4 @@ Executable aes128_test
                     , crypto-api-tests
                     , test-framework
                     , cipher-aes128
+                    , bytestring, tagged, cereal, crypto-api
