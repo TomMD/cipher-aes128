@@ -27,7 +27,7 @@ main = defaultMainWithHooks hk
                       }
 
 aesArgs :: [String]
-aesArgs = ["-maes", "-mssse3", "-DHAVE_AES_INTRINSICS"]
+aesArgs = ["-mpclmul", "-maes", "-mssse3", "-DHAVE_AES_INTRINSICS", "-DWITH_AESNI"]
 
 aesArgsHC :: [String]
 aesArgsHC = map ("-optc" ++) aesArgs
@@ -40,6 +40,6 @@ canUseAesIntrinsicsFlag cc = do
                                 , "int real_main() {"
                                 , "return 0; }"
                                 ])
-        ec <- rawSystemExitCode normal cc ["-c", "-optc-maes",tmpDir ++ "/testIntrinsic.c"]
+        ec <- rawSystemExitCode normal cc (aesArgsHC ++ ["-c", tmpDir ++ "/testIntrinsic.c"])
         notice normal $ "Result of NI Intrinsics Test: " ++ show (ec == ExitSuccess)
         return (ec == ExitSuccess)

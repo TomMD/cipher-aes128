@@ -12,8 +12,8 @@ import qualified Data.ByteString as B
 main = do
     let iv  = zeroIV
         ivV = B.replicate 16 0
-    pt <- getEntropy (2^11)
-    k  <- buildKeyIO :: IO AESKey
+    pt <- getEntropy (2^16)
+    k  <- buildKeyIO :: IO AESKey128
     let kV = initAES (B.pack [0..15])
     defaultMain
         [ bench "aes-ecb cipher-aes128" $ nf (encryptBlock k) pt

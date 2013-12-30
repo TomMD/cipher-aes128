@@ -1,14 +1,17 @@
-{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls #-}
+{-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, ViewPatterns #-}
 module Crypto.Cipher.AES128.Internal
-        ( AESKey(..), RawKey(..), GCM(..)
-        , generateKey, generateGCM
+        ( AESKey128(..), AESKey192(..), AESKey256(..), RawKey128(..), RawKey192(..), RawKey256(..), GCM(..)
+        , generateKey128, generateKey192, generateKey256
+        , generateGCM
         , encryptECB
         , decryptECB
-        , encryptGCM
-        , decryptGCM
-        , finishGCM
         , encryptCTR
         , decryptCTR
+        , encryptGCM, decryptGCM
+        -- * Piece-meal functions
+        , cipherOnlyGCM
+        , decipherOnlyGCM
+        , finishGCM, aadGCM
         ) where
 
 import Foreign.Ptr
@@ -21,81 +24,152 @@ import Data.Bits (shiftL, (.|.))
 -- AES Bindings
 data AESKeyStruct
 type AESKeyPtr = Ptr AESKeyStruct
-data RawKey = RKey { lowK,highK :: {-# UNPACK #-} !Word64 }
-data AESKey = AESKey { rawKey      :: !RawKey
-                     , expandedKey :: ForeignPtr AESKeyStruct }
+
+data RawKey128 = RKey128 { lowK128,highK128 :: {-# UNPACK #-} !Word64 }
+data AESKey128 = AESKey128 { rawKey128      :: !RawKey128
+                           , expandedKey128 :: ForeignPtr AESKeyStruct }
+
+data RawKey192 = RKey192 { lowK192,midK192,highK192 :: {-# UNPACK #-} !Word64 }
+data AESKey192 = AESKey192 { rawKey192      :: !RawKey192
+                           , expandedKey192 :: ForeignPtr AESKeyStruct }
+
+data RawKey256 = RKey256 { aK256,bK256,cK256,dK256 :: {-# UNPACK #-} !Word64 }
+data AESKey256 = AESKey256 { rawKey256      :: !RawKey256
+                           , expandedKey256 :: ForeignPtr AESKeyStruct }
+
+class GetExpanded a where
+    expandedKey :: a -> ForeignPtr AESKeyStruct
+
+instance GetExpanded AESKey256 where
+    expandedKey = expandedKey256
+instance GetExpanded AESKey192 where
+    expandedKey = expandedKey192
+instance GetExpanded AESKey128 where
+    expandedKey = expandedKey128
 
 type AESGcmPtr = Ptr GCMStruct
 data GCMStruct
-data GCM = GCM { _gcmFP  :: ForeignPtr GCMStruct }
+data GCM k = GCM { _gcmFP   :: GCMpc
+                 , _keyFP   :: k
+                 , _ctxFP2  :: ForeignPtr CTXStruct
+                 }
 
-foreign import ccall unsafe "aes/aes.h generate_key128"
-        c_generate_key128 :: AESKeyPtr -> Ptr Word8 -> IO ()
+newtype GCMpc = GCMpc { unGCMpc :: ForeignPtr GCMStruct }
 
-foreign import ccall unsafe "aes/aes.h allocate_key128"
-        c_allocate_key128 :: IO AESKeyPtr
+type AESCtxPtr = Ptr CTXStruct
+data CTXStruct
+-- data CTX = CTX { _ctxFP :: ForeignPtr CTXStruct }
 
-foreign import ccall unsafe "aes/aes.h &free_key128"
-        c_free_key128 :: FunPtr (AESKeyPtr -> IO ())
+foreign import ccall unsafe "aes.h tmd_aes_initkey"
+        c_aes_initkey :: AESKeyPtr -> Ptr Word8 -> Word8 -> IO ()
 
-foreign import ccall unsafe "aes/aes.h free_key128"
-        c_key128_free :: AESKeyPtr -> IO ()
+foreign import ccall unsafe "aes.h tmd_allocatekey"
+        c_allocate_key :: IO AESKeyPtr
 
-foreign import ccall unsafe "aes/aes.h encrypt_ecb"
-        c_encrypt_ecb :: AESKeyPtr -> Ptr Word8 -> Ptr Word8 -> Word32 -> IO ()
+foreign import ccall unsafe "aes.h &tmd_freekey"
+        c_free_key :: FunPtr (AESKeyPtr -> IO ())
 
-foreign import ccall unsafe "aes/aes.h decrypt_ecb"
-        c_decrypt_ecb :: AESKeyPtr -> Ptr Word8 -> Ptr Word8 -> Word32 -> IO ()
+-- foreign import ccall unsafe "aes.h tmd_freekey"
+--         c_key_free :: AESKeyPtr -> IO ()
 
-foreign import ccall unsafe "aes/aes.h allocate_gcm"
-    c_gcm_allocate :: IO AESGcmPtr
+foreign import ccall unsafe "aes.h tmd_allocatectx"
+        c_allocate_ctx :: IO AESCtxPtr
 
-foreign import ccall unsafe "aes/aes.h aes128_gcm_init"
+foreign import ccall unsafe "aes.h &tmd_freectx"
+        c_free_ctx :: FunPtr (AESCtxPtr -> IO ())
+
+-- foreign import ccall unsafe "aes.h tmd_freectx"
+--         c_ctx_free :: AESCtxPtr -> IO ()
+
+foreign import ccall unsafe "aes.h tmd_allocategcm"
+        c_allocate_gcm :: IO AESGcmPtr
+
+foreign import ccall unsafe "aes.h &tmd_freegcm"
+        c_free_gcm :: FunPtr (AESGcmPtr -> IO ())
+
+-- foreign import ccall unsafe "aes.h tmd_freegcm"
+--         c_gcm_free :: AESGcmPtr -> IO ()
+
+foreign import ccall unsafe "aes.h tmd_aes_gcm_init"
     c_gcm_init :: AESGcmPtr
+               -> AESKeyPtr
+               -> IO ()
+
+foreign import ccall unsafe "aes.h tmd_aes_ctx_init"
+    c_ctx_init :: AESGcmPtr
+               -> AESCtxPtr
                -> AESKeyPtr
                -> Ptr Word8 -> Word32 -- ^ IV and length
                -> IO ()
 
-foreign import ccall unsafe "aes/aes.h aes128_gcm_enc_finish"
-    c_gcm_encrypt :: Ptr Word8           -- Output
-                  -> Ptr Word8           -- Tag
+
+foreign import ccall unsafe "aes.h tmd_aes_encrypt_ecb"
+        c_encrypt_ecb :: Ptr Word8 -> AESKeyPtr -> Ptr Word8 -> Word32 -> IO ()
+
+foreign import ccall unsafe "aes.h tmd_aes_decrypt_ecb"
+        c_decrypt_ecb :: Ptr Word8 -> AESKeyPtr -> Ptr Word8 -> Word32 -> IO ()
+
+
+foreign import ccall unsafe "aes.h tmd_aes_gcm_finish"
+    c_gcm_finish  :: Ptr Word8           -- Tag
                   -> AESGcmPtr
-                  -> Ptr Word8 -> Word32 -- IV and length
-                  -> Ptr Word8 -> Word32 -- PT and length
-                  -> Ptr Word8 -> Word32 -- AAD and length
+                  -> AESKeyPtr           -- Key
+                  -> AESCtxPtr           -- Context
                   -> IO ()
 
-foreign import ccall unsafe "aes/aes.h aes128_gcm_dec_finish"
+foreign import ccall unsafe "aes.h tmd_aes_gcm_aad"
+    c_gcm_aad     :: AESGcmPtr
+                  -> AESCtxPtr
+                  -> Ptr Word8 -> Word32 -- AAD, len
+                  -> IO ()
+
+foreign import ccall unsafe "aes.h tmd_aes_gcm_decrypt"
     c_gcm_decrypt :: Ptr Word8           -- Output
-                  -> Ptr Word8           -- Tag
                   -> AESGcmPtr
-                  -> Ptr Word8 -> Word32 -- IV and length
-                  -> Ptr Word8 -> Word32 -- PT and length
-                  -> Ptr Word8 -> Word32 -- AAD and length
+                  -> AESCtxPtr
+                  -> AESKeyPtr
+                  -> Ptr Word8 -> Word32 -- CT and length
                   -> IO ()
 
-foreign import ccall unsafe "aes/aes.h allocate_gcm"
-    c_gcm_finish :: Ptr Word8 -> AESGcmPtr -> IO ()
+foreign import ccall unsafe "aes.h tmd_aes_gcm_encrypt"
+    c_gcm_encrypt :: Ptr Word8           -- Output
+                  -> AESGcmPtr
+                  -> AESCtxPtr
+                  -> AESKeyPtr
+                  -> Ptr Word8 -> Word32 -- PT and length
+                  -> IO ()
 
-foreign import ccall unsafe "aes/aes.h &free_gcm"
-    c_free_gcm :: FunPtr (AESGcmPtr -> IO ())
+foreign import ccall unsafe "aes.h tmd_aes_gcm_full_encrypt"
+    c_gcm_full_encrypt :: AESKeyPtr -> AESGcmPtr
+                       -> Ptr Word8 -> Word32           -- IV, IVLen
+                       -> Ptr Word8 -> Word32           -- AAD, AADLen
+                       -> Ptr Word8 -> Word32           -- PT, PTLen
+                       -> Ptr Word8                     -- CT
+                       -> Ptr Word8                     -- Tag
+                       -> IO ()
 
-foreign import ccall unsafe "aes/aes.h free_gcm"
-    _c_gcm_free :: AESGcmPtr -> IO ()
+foreign import ccall unsafe "aes.h tmd_aes_gcm_full_decrypt"
+    c_gcm_full_decrypt :: AESKeyPtr -> AESGcmPtr
+                       -> Ptr Word8 -> Word32           -- IV, IVLen
+                       -> Ptr Word8 -> Word32           -- AAD, AADLen
+                       -> Ptr Word8 -> Word32           -- PT, PTLen
+                       -> Ptr Word8                     -- CT
+                       -> Ptr Word8                     -- Tag
+                       -> IO ()
 
-foreign import ccall unsafe "aes/aes.h encrypt_ctr"
-    c_encrypt_ctr :: AESKeyPtr
+foreign import ccall unsafe "aes.h tmd_aes_encrypt_ctr"
+    c_encrypt_ctr :: Ptr Word8 -- ^ Output
+                  -> AESKeyPtr
                   -> Ptr Word8 -- ^ 128 bit IV
                   -> Ptr Word8 -- ^ 128 bit new IV
-                  -> Ptr Word8 -- ^ Result
                   -> Ptr Word8 -- ^ Input
                   -> Word32    -- ^ Input length in bytes
                   -> IO ()
 
-c_decrypt_ctr :: AESKeyPtr
+c_decrypt_ctr :: Ptr Word8 -- ^ Result
+              -> AESKeyPtr
               -> Ptr Word8 -- ^ 128 bit IV
               -> Ptr Word8 -- ^ 128 bit new IV
-              -> Ptr Word8 -- ^ Result
               -> Ptr Word8 -- ^ Input
               -> Word32    -- ^ Input length in bytes
               -> IO ()
@@ -105,17 +179,18 @@ blkSzC :: Word32
 blkSzC = 16
 
 -- Given a 16 byte buffer, allocate and return an AESKey
-generateKey :: Ptr Word64 -- ^ Buffer of 16 bytes of key material
-            -> IO AESKey
-generateKey keyPtr  = do
+generateKey128 :: Ptr Word64
+            -- ^ Buffer of 16 bytes of key material
+            -> IO (Maybe AESKey128)
+generateKey128 keyPtr = do
     raw <- do
             a <- peekLE (castPtr keyPtr)
             let keyPtr2 = (castPtr keyPtr) `plusPtr` sizeOf a
             b <- peekLE keyPtr2
-            return (RKey b a)
-    k <- c_allocate_key128
-    c_generate_key128 k (castPtr keyPtr)
-    fmap (AESKey raw) (newForeignPtr c_free_key128 k)
+            return (RKey128 b a)
+    k <- c_allocate_key
+    c_aes_initkey k (castPtr keyPtr) 16
+    fmap (Just . AESKey128 raw) (newForeignPtr c_free_key k)
  where
      peekLE :: Ptr Word8 -> IO Word64
      peekLE p = do
@@ -132,92 +207,197 @@ generateKey keyPtr  = do
                 (f a4 32) .|. (f a5 24) .|. (f a6 16) .|.
                 (f a7 8)  .|. fromIntegral a8
         return a
-{-# INLINE generateKey #-}
+{-# INLINE generateKey128 #-}
+
+-- Given a 16 byte buffer, allocate and return an AESKey
+generateKey192 :: Ptr Word64
+            -- ^ Buffer of 16 bytes of key material
+            -> IO (Maybe AESKey192)
+generateKey192 keyPtr = do
+    raw <- do
+            a <- peekLE (castPtr keyPtr)
+            let keyPtr2 = (castPtr keyPtr) `plusPtr` sizeOf a
+            b <- peekLE keyPtr2
+            let keyPtr3 = (castPtr keyPtr) `plusPtr` sizeOf a `plusPtr` sizeOf b
+            c <- peekLE keyPtr3
+            return (RKey192 c b a)
+    k <- c_allocate_key
+    c_aes_initkey k (castPtr keyPtr) 24
+    fmap (Just . AESKey192 raw) (newForeignPtr c_free_key k)
+ where
+     peekLE :: Ptr Word8 -> IO Word64
+     peekLE p = do
+        a1 <- peekElemOff p 0
+        a2 <- peekElemOff p 1
+        a3 <- peekElemOff p 2
+        a4 <- peekElemOff p 3
+        a5 <- peekElemOff p 4
+        a6 <- peekElemOff p 5
+        a7 <- peekElemOff p 6
+        a8 <- peekElemOff p 7
+        let f n s = fromIntegral n `shiftL` s
+        let a = (f a1 56) .|. (f a2 48) .|. (f a3 40) .|.
+                (f a4 32) .|. (f a5 24) .|. (f a6 16) .|.
+                (f a7 8)  .|. fromIntegral a8
+        return a
+{-# INLINE generateKey192 #-}
+
+-- Given a 16 byte buffer, allocate and return an AESKey
+generateKey256 :: Ptr Word64
+            -- ^ Buffer of 16 bytes of key material
+            -> IO (Maybe AESKey256)
+generateKey256 keyPtr = do
+    raw <- do
+            a <- peekLE (castPtr keyPtr)
+            let keyPtr2 = (castPtr keyPtr) `plusPtr` sizeOf a
+            b <- peekLE keyPtr2
+            let keyPtr3 = (castPtr keyPtr) `plusPtr` sizeOf a `plusPtr` sizeOf b
+            c <- peekLE keyPtr3
+            let keyPtr4 = (castPtr keyPtr) `plusPtr` sizeOf a `plusPtr` sizeOf b `plusPtr` sizeOf c
+            d <- peekLE keyPtr4
+            return (RKey256 d c b a)
+    k <- c_allocate_key
+    c_aes_initkey k (castPtr keyPtr) 32
+    fmap (Just . AESKey256 raw) (newForeignPtr c_free_key k)
+ where
+     peekLE :: Ptr Word8 -> IO Word64
+     peekLE p = do
+        a1 <- peekElemOff p 0
+        a2 <- peekElemOff p 1
+        a3 <- peekElemOff p 2
+        a4 <- peekElemOff p 3
+        a5 <- peekElemOff p 4
+        a6 <- peekElemOff p 5
+        a7 <- peekElemOff p 6
+        a8 <- peekElemOff p 7
+        let f n s = fromIntegral n `shiftL` s
+        let a = (f a1 56) .|. (f a2 48) .|. (f a3 40) .|.
+                (f a4 32) .|. (f a5 24) .|. (f a6 16) .|.
+                (f a7 8)  .|. fromIntegral a8
+        return a
+{-# INLINE generateKey256 #-}
 
 -- Given a 16 byte buffer, allocate and return an key expansion useful for
 -- GCM
-generateGCM :: Ptr Word64 -- ^ Buffer of 16 bytes of key material
-            -> IO GCM
-generateGCM keyPtr  = do
-    g <- c_gcm_allocate
-    k <- c_allocate_key128
-    c_generate_key128 k (castPtr keyPtr)
-    allocaBytes 12 $ \ivPtr -> do
-        mapM_ (\i -> pokeElemOff ivPtr i (0::Word8)) [0..11]
-        c_gcm_init g k ivPtr 12
-    c_key128_free k
-    fmap GCM (newForeignPtr c_free_gcm g)
+generateGCM :: GetExpanded k
+            => k
+            -> IO (Maybe (GCM k))
+generateGCM keyStruct
+    | otherwise                   = do
+    withForeignPtr (expandedKey keyStruct) $ \k -> do
+      g <- c_allocate_gcm
+      c <- c_allocate_ctx
+      allocaBytes 12 $ \ivPtr -> do
+          mapM_ (\i -> pokeElemOff ivPtr i (0::Word8)) [0..11]
+          c_gcm_init g k
+          c_ctx_init g c k ivPtr 12
+      gFP <- newForeignPtr c_free_gcm g
+      cFP <- newForeignPtr c_free_ctx c
+      return (Just $ GCM (GCMpc gFP) keyStruct cFP)
 {-# INLINE generateGCM #-}
 
 -- An encrypt function that can handle up to blks < maxBound `div` 16 :: Word32
 -- simultaneous blocks.
-encryptECB :: AESKey    -- ^ The key
+encryptECB :: GetExpanded k
+           => k         -- ^ The key
            -> Ptr Word8 -- ^ The result buffer
            -> Ptr Word8 -- ^ The source buffer
            -> Int       -- ^ The input size in blocks
            -> IO ()
-encryptECB (AESKey _ k) dst src blks = withForeignPtr k $ \p -> c_encrypt_ecb p dst src (fromIntegral blks)
+encryptECB (expandedKey -> k) dst src blks = withForeignPtr k $ \p -> c_encrypt_ecb dst p src (fromIntegral blks)
 {-# INLINE encryptECB #-}
 
-decryptECB :: AESKey    -- ^ The key
+decryptECB :: GetExpanded k
+           => k         -- ^ The key
            -> Ptr Word8 -- ^ The result buffer
            -> Ptr Word8 -- ^ The source buffer
            -> Int       -- ^ The input size in blocks
            -> IO ()
-decryptECB (AESKey _ k) dst src blks
+decryptECB (expandedKey -> k) dst src blks
   | blks > fromIntegral (maxBound `div` blkSzC :: Word32) = error "Can not decrypt so many blocks at once"
-  | otherwise = withForeignPtr k $ \p -> c_decrypt_ecb p dst src (fromIntegral blks)
+  | otherwise = withForeignPtr k $ \p -> c_decrypt_ecb dst p src (fromIntegral blks)
 {-# INLINE decryptECB #-}
 
-encryptGCM :: GCM
-           -> Ptr Word8 -> Int  -- IV and length
-           -> Ptr Word8 -> Int  -- PT and length
-           -> Ptr Word8 -> Int  -- AAD and length
-           -> Ptr Word8         -- CT  (length assumed to match PT)
-           -> Ptr Word8         -- Tag (length assumed to match blocksize)
-           -> IO ()
-encryptGCM (GCM k) iv ivlen pt ptlen aad aadlen ct tg = withForeignPtr k $ \g ->
-    c_gcm_encrypt ct tg g iv  (fromIntegral ivlen)
-                          pt  (fromIntegral ptlen)
-                          aad (fromIntegral aadlen)
+aadGCM :: GetExpanded k => GCM k -> Ptr Word8 -> Int -> IO ()
+aadGCM gcm aad aadLen = withForeignGCM gcm $ \(g,_k,c) ->
+    c_gcm_aad g c aad (fromIntegral aadLen)
 
-decryptGCM :: GCM
-           -> Ptr Word8 -> Int  -- IV and length
-           -> Ptr Word8 -> Int  -- CT and length
-           -> Ptr Word8 -> Int  -- AAD and length
-           -> Ptr Word8         -- PT (length assumed to match PT)
-           -> Ptr Word8         -- Tag (length assumed to match blocksize)
-           -> IO ()
-decryptGCM (GCM k) iv ivlen ct ctlen aad aadlen pt tg = withForeignPtr k $ \g ->
-    c_gcm_decrypt pt tg g
-                       iv  (fromIntegral ivlen)
-                       ct  (fromIntegral ctlen)
-                       aad (fromIntegral aadlen)
+cipherOnlyGCM :: GetExpanded k
+              => GCM k
+              -> Ptr Word8         -- CT  (length assumed to match PT)
+              -> Ptr Word8 -> Int  -- PT and length
+              -> IO ()
+cipherOnlyGCM gcm ct pt ptlen = withForeignGCM gcm $ \(g,k,c) ->
+    c_gcm_encrypt ct g c k pt  (fromIntegral ptlen)
 
-finishGCM :: GCM
+decipherOnlyGCM :: GetExpanded k
+                => GCM k
+                -> Ptr Word8         -- PT (length assumed to match CT)
+                -> Ptr Word8 -> Int  -- CT and length
+                -> IO ()
+decipherOnlyGCM gcm pt ct ctlen = withForeignGCM gcm $ \(g,k,c) ->
+    c_gcm_decrypt pt g c k ct (fromIntegral ctlen)
+
+finishGCM :: GetExpanded k
+          => GCM k
           -> Ptr Word8 -- Tag, must point to 16 byte buffer (or larger)
           -> IO ()
-finishGCM (GCM k) tagPtr = withForeignPtr k $ \g -> c_gcm_finish tagPtr g
+finishGCM gcm tagPtr =
+    withForeignGCM gcm $ \(gp,kp,cp) -> c_gcm_finish tagPtr gp kp cp
 
-encryptCTR :: AESKey
+withForeignGCM :: GetExpanded k => GCM k -> ((AESGcmPtr, AESKeyPtr, AESCtxPtr) -> IO a) -> IO a
+withForeignGCM (GCM g k c) f =
+    withForeignPtr (unGCMpc g) $ \gp -> withForeignPtr (expandedKey k) $ \kp -> withForeignPtr c $ \cp -> f (gp,kp,cp)
+
+encryptCTR :: GetExpanded k
+           => k
            -> Ptr Word8 -- ^ IV
            -> Ptr Word8 -- ^ NEW IV
            -> Ptr Word8 -- ^ CT
            -> Ptr Word8 -- ^ PT
            -> Int       -- ^ Length in bytes
            -> IO ()
-encryptCTR (AESKey _ k) iv niv ct pt len = withForeignPtr k $ \p -> do
-    c_encrypt_ctr p iv niv ct pt (fromIntegral len)
+encryptCTR (expandedKey -> k) iv niv ct pt len = withForeignPtr k $ \p -> do
+    c_encrypt_ctr ct p iv niv pt (fromIntegral len)
 {-# INLINE encryptCTR #-}
 
-decryptCTR :: AESKey
+decryptCTR :: GetExpanded k
+           => k
            -> Ptr Word8 -- ^ IV
            -> Ptr Word8 -- ^ NEW IV
-           -> Ptr Word8 -- ^ CT
            -> Ptr Word8 -- ^ PT
+           -> Ptr Word8 -- ^ CT
            -> Int       -- ^ Length in bytes
            -> IO ()
+decryptCTR (expandedKey -> k) iv niv pt ct len = withForeignPtr k $ \p -> do
+    c_decrypt_ctr pt p iv niv ct (fromIntegral len)
 
-decryptCTR (AESKey _ k) iv niv ct pt len = withForeignPtr k $ \p -> do
-    c_decrypt_ctr p iv niv ct pt (fromIntegral len)
+encryptGCM :: GetExpanded k
+           => k
+           -> GCMpc
+           -> Ptr Word8 -> Word32 -- IV
+           -> Ptr Word8 -> Word32 -- AAD
+           -> Ptr Word8 -> Word32 -- PT
+           -> Ptr Word8 -- CT
+           -> Ptr Word8 -- Tag
+           -> IO ()
+encryptGCM (expandedKey -> k) (GCMpc g) iv ivLen aad aadLen pt ptLen ct tag =
+    withForeignPtr k $ \kp ->
+      withForeignPtr g $ \gp ->
+       c_gcm_full_encrypt kp gp iv ivLen aad aadLen pt ptLen ct tag
+
+decryptGCM :: GetExpanded k
+           => k
+           -> GCMpc
+           -> Ptr Word8 -> Word32 -- IV
+           -> Ptr Word8 -> Word32 -- AAD
+           -> Ptr Word8 -> Word32 -- CT
+           -> Ptr Word8 -- PT
+           -> Ptr Word8 -- Tag
+           -> IO ()
+decryptGCM (expandedKey -> k) (GCMpc g) iv ivLen aad aadLen ct ctLen pt tag =
+    withForeignPtr k $ \kp ->
+      withForeignPtr g $ \gp ->
+       c_gcm_full_decrypt kp gp iv ivLen aad aadLen ct ctLen pt tag
+
 {-# INLINE decryptCTR #-}

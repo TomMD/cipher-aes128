@@ -27,10 +27,46 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#include "aes_types.h"
-#include "block128.h"
-#include <stdint.h>
 
-void aes128_generic_encrypt_block(aes_block *output, const aes_key *key, const aes_block *input);
-void aes128_generic_decrypt_block(aes_block *output, const aes_key *key, const aes_block *input);
-void aes128_generic_init(aes_key *key, const uint8_t *origkey, uint8_t size);
+#include <stdio.h>
+#include <stdint.h>
+#include "cpu.h"
+#include "gf.h"
+#include "aes_x86ni.h"
+
+/* this is a really inefficient way to GF multiply.
+ * the alternative without hw accel is building small tables
+ * to speed up the multiplication.
+ * TODO: optimise with tables
+ */
+void gf_mul(block128 *a, const block128 *b)
+{
+	uint64_t a0, a1, v0, v1;
+	int i, j;
+
+	a0 = a1 = 0;
+	v0 = cpu_to_be64(a->q[0]);
+	v1 = cpu_to_be64(a->q[1]);
+
+	for (i = 0; i < 16; i++)
+		for (j = 0x80; j != 0; j >>= 1) {
+			uint8_t x = b->b[i] & j;
+			a0 ^= x ? v0 : 0;
+			a1 ^= x ? v1 : 0;
+			x = (uint8_t) v1 & 1;
+			v1 = (v1 >> 1) | (v0 << 63);
+			v0 = (v0 >> 1) ^ (x ? (0xe1ULL << 56) : 0);
+		}
+	a->q[0] = cpu_to_be64(a0);
+	a->q[1] = cpu_to_be64(a1);
+}
+
+/* inplace GFMUL for xts mode */
+void gf_mulx(block128 *a)
+{
+	const uint64_t gf_mask = cpu_to_le64(0x8000000000000000ULL);
+	uint64_t r = ((a->q[1] & gf_mask) ? cpu_to_le64(0x87) : 0);
+	a->q[1] = cpu_to_le64((le64_to_cpu(a->q[1]) << 1) | (a->q[0] & gf_mask ? 1 : 0));
+	a->q[0] = cpu_to_le64(le64_to_cpu(a->q[0]) << 1) ^ r;
+}
+

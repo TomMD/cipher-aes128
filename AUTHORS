@@ -1,2 +1,2 @@
-Thomas DuBuisson: AES trampolines, Haskell code
-Vincent Hanquez: AES algorithms for x86 and NI
+Thomas DuBuisson: Haskell code, refactoring of aes C code (extract mutable portion of GCM struct)
+Vincent Hanquez: C AES implementations for x86 and NI
