@@ -1,8 +1,8 @@
 {-# LANGUAGE ForeignFunctionInterface, EmptyDataDecls, ViewPatterns #-}
 module Crypto.Cipher.AES128.Internal
-        ( AESKey128(..), AESKey192(..), AESKey256(..), RawKey128(..), RawKey192(..), RawKey256(..), GCM(..)
+        ( AESKey128(..), AESKey192(..), AESKey256(..), RawKey128(..), RawKey192(..), RawKey256(..), GCM(..), GCMpc
         , generateKey128, generateKey192, generateKey256
-        , generateGCM
+        , generateGCM, precomputeGCMdata
         , encryptECB
         , decryptECB
         , encryptCTR
@@ -281,20 +281,28 @@ generateKey256 keyPtr = do
 -- GCM
 generateGCM :: GetExpanded k
             => k
-            -> IO (Maybe (GCM k))
-generateGCM keyStruct
-    | otherwise                   = do
+            -> IO (GCM k)
+generateGCM keyStruct = do
+    gcmPC <- precomputeGCMdata keyStruct
     withForeignPtr (expandedKey keyStruct) $ \k -> do
-      g <- c_allocate_gcm
       c <- c_allocate_ctx
-      allocaBytes 12 $ \ivPtr -> do
+      allocaBytes 12 $ \ivPtr -> withGCMpc gcmPC $ \g -> do
           mapM_ (\i -> pokeElemOff ivPtr i (0::Word8)) [0..11]
-          c_gcm_init g k
           c_ctx_init g c k ivPtr 12
-      gFP <- newForeignPtr c_free_gcm g
       cFP <- newForeignPtr c_free_ctx c
-      return (Just $ GCM (GCMpc gFP) keyStruct cFP)
+      return (GCM gcmPC keyStruct cFP)
 {-# INLINE generateGCM #-}
+
+precomputeGCMdata :: GetExpanded k => k -> IO GCMpc
+precomputeGCMdata k = do
+    withForeignPtr (expandedKey k) $ \kp -> do
+        g <- c_allocate_gcm
+        c_gcm_init g kp
+        gFP <- newForeignPtr c_free_gcm g
+        return (GCMpc gFP)
+
+withGCMpc :: GCMpc -> (AESGcmPtr -> IO a) -> IO a
+withGCMpc (GCMpc p) = withForeignPtr p
 
 -- An encrypt function that can handle up to blks < maxBound `div` 16 :: Word32
 -- simultaneous blocks.
