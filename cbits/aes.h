@@ -68,28 +68,37 @@ void tmd_freegcm(aes_gcm *g);
 /* in bytes: either 16,24,32 */
 void tmd_aes_initkey(aes_key *ctx, uint8_t *key, uint8_t size);
 
-void tmd_aes_encrypt(aes_block *output, aes_key *key, aes_block *input);
-void tmd_aes_decrypt(aes_block *output, aes_key *key, aes_block *input);
+void tmd_aes_encrypt(aes_block *output, const aes_key *key, const aes_block *input);
+void tmd_aes_decrypt(aes_block *output, const aes_key *key, const aes_block *input);
 
-void tmd_aes_encrypt_ecb(aes_block *output, aes_key *key, aes_block *input, uint32_t nb_blocks);
-void tmd_aes_decrypt_ecb(aes_block *output, aes_key *key, aes_block *input, uint32_t nb_blocks);
+void tmd_aes_encrypt_ecb(aes_block *output, const aes_key *key, const aes_block *input, uint32_t nb_blocks);
+void tmd_aes_decrypt_ecb(aes_block *output, const aes_key *key, const aes_block *input, uint32_t nb_blocks);
 
-void tmd_aes_encrypt_cbc(aes_block *output, aes_key *key, aes_block *iv, aes_block *input, uint32_t nb_blocks);
-void tmd_aes_decrypt_cbc(aes_block *output, aes_key *key, aes_block *iv, aes_block *input, uint32_t nb_blocks);
+void tmd_aes_encrypt_cbc(aes_block *output, const aes_key *key, const aes_block *iv, aes_block *niv, const aes_block *input, uint32_t nb_blocks);
+void tmd_aes_decrypt_cbc(aes_block *output, const aes_key *key, const aes_block *iv, aes_block *niv, const aes_block *input, uint32_t nb_blocks);
 
-void tmd_aes_encrypt_ctr(uint8_t *output, aes_key *key, aes_block *iv, aes_block *newIV, uint8_t *input, uint32_t len);
-void tmd_aes_gen_ctr(aes_block *output, aes_key *key, aes_block *iv, uint32_t nb_blocks);
+void tmd_aes_encrypt_ctr(uint8_t *output, const aes_key *key, const aes_block *iv, aes_block *newIV, const uint8_t *input, uint32_t len);
+void tmd_aes_gen_ctr(aes_block *output, const aes_key *key, aes_block *iv, uint32_t nb_blocks);
 
 void tmd_aes_encrypt_xts(aes_block *output, aes_key *key, aes_key *key2, aes_block *sector,
                      uint32_t spoint, aes_block *input, uint32_t nb_blocks);
 void tmd_aes_decrypt_xts(aes_block *output, aes_key *key, aes_key *key2, aes_block *sector,
                      uint32_t spoint, aes_block *input, uint32_t nb_blocks);
 
-void tmd_aes_gcm_init(aes_gcm *gcm, aes_key *key);
-void tmd_aes_ctx_init(const aes_gcm *gcm, aes_ctx *ctx, const aes_key *key, uint8_t *iv, uint32_t len);
-void tmd_aes_gcm_aad(aes_gcm *gcm, aes_ctx *ctx, uint8_t *input, uint32_t length);
-void tmd_aes_gcm_encrypt(uint8_t *output, aes_gcm *gcm, aes_ctx *ctx, aes_key *key, uint8_t *input, uint32_t length);
-void tmd_aes_gcm_decrypt(uint8_t *output, aes_gcm *gcm, aes_ctx *ctx, aes_key *key, uint8_t *input, uint32_t length);
-void tmd_aes_gcm_finish(uint8_t *tag, aes_gcm *gcm, aes_key *key, aes_ctx *ctx);
-
+void tmd_aes_gcm_init(aes_gcm *gcm, const aes_key *key);
+void tmd_aes_ctx_init(const aes_gcm *gcm, aes_ctx *ctx, const aes_key *key, const uint8_t *iv, uint32_t len);
+void tmd_aes_gcm_aad(const aes_gcm *gcm, aes_ctx *ctx, const uint8_t *input, uint32_t length);
+void tmd_aes_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, const aes_ctx *ctx, const aes_key *key, const uint8_t *input, uint32_t length, aes_ctx *newCTX);
+void tmd_aes_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, const aes_ctx *ctx, const aes_key *key, const uint8_t *input, uint32_t length, aes_ctx *newCTX);
+void tmd_aes_gcm_finish(uint8_t *tag, const aes_gcm *gcm, const aes_key *key, aes_ctx *ctx);
+void tmd_aes_gcm_full_encrypt( const aes_key *key, const aes_gcm *gcm
+                             , const uint8_t *iv, uint32_t ivLen
+                             , const uint8_t *aad, uint32_t aadLen
+                             , const uint8_t *pt, uint32_t ptLen
+                             , uint8_t *ct, uint8_t *tag);
+void tmd_aes_gcm_full_decrypt( const aes_key *key, const aes_gcm *gcm
+                             , const uint8_t *iv, uint32_t ivLen
+                             , const uint8_t *aad, uint32_t aadLen
+                             , const uint8_t *ct, uint32_t ctLen
+                             , uint8_t *pt, uint8_t *tag);
 #endif

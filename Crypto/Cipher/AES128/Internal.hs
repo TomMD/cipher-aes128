@@ -347,7 +347,7 @@ decipherOnlyGCM gcm pt ct ctlen = withForeignGCM gcm $ \(g,k,c) ->
     c_gcm_decrypt pt g c k ct (fromIntegral ctlen)
 
 finishGCM :: GetExpanded k
-          => GCM k
+          => GCM k     -- GCM context (which is mutated!)
           -> Ptr Word8 -- Tag, must point to 16 byte buffer (or larger)
           -> IO ()
 finishGCM gcm tagPtr =

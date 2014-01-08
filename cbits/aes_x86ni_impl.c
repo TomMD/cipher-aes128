@@ -186,17 +186,18 @@ void SIZED(tmd_aes_ni_encrypt_xts)(aes_block *out, aes_key *key1, aes_key *key2,
 
 void SIZED(tmd_aes_ni_gcm_encrypt)(uint8_t *output, aes_gcm *gcm, aes_ctx *ctx, aes_key *key, uint8_t *input, uint32_t length, aes_ctx *newCTX)
 {
+        memcpy(newCTX, ctx, sizeof(aes_ctx));
         __m128i *k = (__m128i *) key->data;
         __m128i bswap_mask = _mm_setr_epi8(7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8);
         __m128i one        = _mm_set_epi32(0,1,0,0);
         uint32_t nb_blocks = length / 16;
         uint32_t part_block_len = length % 16;
 
-        ctx->length_input += length;
+        newCTX->length_input += length;
 
         __m128i h  = _mm_loadu_si128((__m128i *) &gcm->h);
-        __m128i tag = _mm_loadu_si128((__m128i *) &ctx->tag);
-        __m128i iv = _mm_loadu_si128((__m128i *) &ctx->civ);
+        __m128i tag = _mm_loadu_si128((__m128i *) &newCTX->tag);
+        __m128i iv = _mm_loadu_si128((__m128i *) &newCTX->civ);
         iv = _mm_shuffle_epi8(iv, bswap_mask);
 
         PRELOAD_ENC(k);

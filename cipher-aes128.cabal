@@ -43,6 +43,7 @@ library
                      , ./cbits/cpu.c
                      , ./cbits/gf.c
   include-dirs:        cbits/
+  cc-options: -g
   -- None by default cc-options:          -mssse3 -maes -mpclmul
 
 source-repository head
