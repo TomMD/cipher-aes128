@@ -2,7 +2,6 @@ import Crypto.Cipher.AES128
 import Crypto.Cipher.AES
 import Crypto.Classes
 import Crypto.Types
-import Crypto.Modes (zeroIV)
 import Criterion
 import Criterion.Main
 import System.Entropy

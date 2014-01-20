@@ -54,7 +54,7 @@ static void cpuid(uint32_t info, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, ui
 }
 
 #ifdef USE_AESNI
-void initialize_hw(void (*init_table)(int, int))
+void tmd_initialize_hw(void (*init_table)(int, int))
 {
 	static int inited = 0;
 	if (inited == 0) {

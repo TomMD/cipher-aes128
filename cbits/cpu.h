@@ -37,7 +37,7 @@
 #endif
 
 #ifdef USE_AESNI
-void initialize_hw(void (*init_table)(int, int));
+void tmd_initialize_hw(void (*init_table)(int, int));
 #else
 #define initialize_hw(init_table) 	(0)
 #endif
