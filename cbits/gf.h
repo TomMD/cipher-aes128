@@ -32,7 +32,7 @@
 
 #include "block128.h"
 
-void gf_mul(block128 *a, const block128 *b);
-void gf_mulx(block128 *a);
+void tmd_gf_mul(block128 *a, const block128 *b);
+void tmd_gf_mulx(block128 *a);
 
 #endif

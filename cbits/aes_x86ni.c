@@ -143,7 +143,7 @@ void tmd_aes_ni_init(aes_key *key, uint8_t *ikey, uint8_t size)
 
 /* TO OPTIMISE: use pcmulqdq... or some faster code.
  * this is the lamest way of doing it, but i'm out of time.
- * this is basically a copy of gf_mulx in gf.c */
+ * this is basically a copy of tmd_gf_mulx in gf.c */
 static __m128i gfmulx(__m128i v)
 {
 	uint64_t v_[2] ALIGNMENT(16);

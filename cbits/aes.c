@@ -319,7 +319,7 @@ void tmd_aes_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, const aes_ctx *ctx
 static void gcm_ghash_add(const aes_gcm *gcm, aes_ctx *ctx, const block128 *b)
 {
         block128_xor(&ctx->tag, b);
-        gf_mul(&ctx->tag, &gcm->h);
+        tmd_gf_mul(&ctx->tag, &gcm->h);
 }
 
 void tmd_aes_gcm_init(aes_gcm *gcm, const aes_key *key)
@@ -345,15 +345,15 @@ void tmd_aes_ctx_init(const aes_gcm *gcm, aes_ctx *ctx, const aes_key *key, cons
                 int i;
                 for (; len >= 16; len -= 16, iv += 16) {
                         block128_xor(&ctx->iv, (block128 *) iv);
-                        gf_mul(&ctx->iv, &gcm->h);
+                        tmd_gf_mul(&ctx->iv, &gcm->h);
                 }
                 if (len > 0) {
                         block128_xor_bytes(&ctx->iv, iv, len);
-                        gf_mul(&ctx->iv, &gcm->h);
+                        tmd_gf_mul(&ctx->iv, &gcm->h);
                 }
                 for (i = 15; origlen; --i, origlen >>= 8)
                         ctx->iv.b[i] ^= (uint8_t) origlen;
-                gf_mul(&ctx->iv, &gcm->h);
+                tmd_gf_mul(&ctx->iv, &gcm->h);
         }
 
         block128_copy(&ctx->civ, &ctx->iv);
@@ -496,9 +496,9 @@ void tmd_aes_generic_encrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, ae
 
         /* TO OPTIMISE: this is really inefficient way to do that */
         while (spoint-- > 0)
-                gf_mulx(&tweak);
+                tmd_gf_mulx(&tweak);
 
-        for ( ; nb_blocks-- > 0; input++, output++, gf_mulx(&tweak)) {
+        for ( ; nb_blocks-- > 0; input++, output++, tmd_gf_mulx(&tweak)) {
                 block128_vxor(&block, input, &tweak);
                 aes_encrypt_block(&block, k1, &block);
                 block128_vxor(output, &block, &tweak);
@@ -516,9 +516,9 @@ void tmd_aes_generic_decrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, ae
 
         /* TO OPTIMISE: this is really inefficient way to do that */
         while (spoint-- > 0)
-                gf_mulx(&tweak);
+                tmd_gf_mulx(&tweak);
 
-        for ( ; nb_blocks-- > 0; input++, output++, gf_mulx(&tweak)) {
+        for ( ; nb_blocks-- > 0; input++, output++, tmd_gf_mulx(&tweak)) {
                 block128_vxor(&block, input, &tweak);
                 aes_decrypt_block(&block, k1, &block);
                 block128_vxor(output, &block, &tweak);
