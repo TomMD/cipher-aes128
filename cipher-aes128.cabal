@@ -18,6 +18,8 @@ category:            Cryptography
 homepage:            https://github.com/TomMD/cipher-aes128
 bug-reports:         https://github.com/TomMD/cipher-aes128/issues
 build-type:          Custom
+-- build-type:          Simple
+-- ^^^ For HaLVM
 cabal-version:       >=1.12
 
 extra-source-files:       ./cbits/*.h, ./cbits/*.c
@@ -26,6 +28,10 @@ extra-source-files:       ./cbits/*.h, ./cbits/*.c
 flag test
   description: Build a program to test the AES implementation
   default: False
+
+flag halvm
+    description: The HaLVM target
+    default: False
 
 library
   default-language:    Haskell2010
@@ -43,7 +49,9 @@ library
                      , ./cbits/cpu.c
                      , ./cbits/gf.c
   include-dirs:        cbits/
-  cc-options: -g
+  cc-options:
+  if flag(halvm)
+    cc-options: -maes -mpclmul -mssse3 -DWITH_AESNI
   -- None by default cc-options:          -mssse3 -maes -mpclmul
 
 source-repository head

@@ -34,6 +34,7 @@
 #include "bitfn.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "gf.h"
 #include "aes_x86ni.h"
@@ -152,7 +153,7 @@ typedef void (*block_f)(aes_block *output, const aes_key *key, const aes_block *
 #define aes_decrypt_block(o,k,i) \
         (((block_f) (tmd_branch_table[DECRYPT_BLOCK_128 + k->strength]))(o,k,i))
 #else
-#define GET_INIT(strenght) tmd_aes_generic_init
+#define GET_INIT(strength) tmd_aes_generic_init
 #define GET_ECB_ENCRYPT(strength) tmd_aes_generic_encrypt_ecb
 #define GET_ECB_DECRYPT(strength) tmd_aes_generic_decrypt_ecb
 #define GET_CBC_ENCRYPT(strength) tmd_aes_generic_encrypt_cbc
