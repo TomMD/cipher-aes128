@@ -44,9 +44,9 @@ void tmd_aes_generic_decrypt_ecb(aes_block *output, const aes_key *key, const ae
 void tmd_aes_generic_encrypt_cbc(aes_block *output, const aes_key *key, const aes_block *iv, aes_block *newIV, const aes_block *input, uint32_t nb_blocks);
 void tmd_aes_generic_decrypt_cbc(aes_block *output, const aes_key *key, const aes_block *ivini, aes_block *newIV, const aes_block *input, uint32_t nb_blocks);
 void tmd_aes_generic_encrypt_ctr(uint8_t *output, const aes_key *key, const aes_block *iv, aes_block *newIV, const uint8_t *input, uint32_t length);
-void tmd_aes_generic_encrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, aes_block *dataunit,
+void tmd_aes_generic_encrypt_xts(aes_block *output, const aes_key *k1, aes_key *k2, aes_block *dataunit,
                              uint32_t spoint, aes_block *input, uint32_t nb_blocks);
-void tmd_aes_generic_decrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, aes_block *dataunit,
+void tmd_aes_generic_decrypt_xts(aes_block *output, const aes_key *k1, aes_key *k2, aes_block *dataunit,
                              uint32_t spoint, aes_block *input, uint32_t nb_blocks);
 void tmd_aes_generic_gcm_encrypt(uint8_t *output, const aes_gcm *gcm, const aes_ctx *ctx, const aes_key *key, const uint8_t *input, uint32_t length, aes_ctx *newCTX);
 void tmd_aes_generic_gcm_decrypt(uint8_t *output, const aes_gcm *gcm, const aes_ctx *ctx, const aes_key *key, const uint8_t *input, uint32_t length, aes_ctx *newCTX);
@@ -119,7 +119,7 @@ void *tmd_branch_table[] = {
         [DECRYPT_GCM_256]   = tmd_aes_generic_gcm_decrypt,
 };
 
-typedef void (*init_f)(const aes_key *, uint8_t *, uint8_t);
+typedef void (*init_f)(aes_key *, const uint8_t *, uint8_t);
 typedef void (*ecb_f)(aes_block *output, const aes_key *key, const aes_block *input, uint32_t nb_blocks);
 typedef void (*cbc_f)(aes_block *output, const aes_key *key, const aes_block *iv, aes_block *niv, const aes_block *input, uint32_t nb_blocks);
 typedef void (*ctr_f)(uint8_t *output, const aes_key *key, const aes_block *iv, aes_block *niv, const uint8_t *input, uint32_t length);
@@ -292,14 +292,14 @@ void tmd_aes_encrypt_ctr(uint8_t *output, const aes_key *key, const aes_block *i
         e(output, key, iv, newIV, input, len);
 }
 
-void tmd_aes_encrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, aes_block *dataunit,
+void tmd_aes_encrypt_xts(aes_block *output, const aes_key *k1, aes_key *k2, aes_block *dataunit,
                      uint32_t spoint, aes_block *input, uint32_t nb_blocks)
 {
         xts_f e = GET_XTS_ENCRYPT(k1->strength);
         e(output, k1, k2, dataunit, spoint, input, nb_blocks);
 }
 
-void tmd_aes_decrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, aes_block *dataunit,
+void tmd_aes_decrypt_xts(aes_block *output, const aes_key *k1, aes_key *k2, aes_block *dataunit,
                      uint32_t spoint, aes_block *input, uint32_t nb_blocks)
 {
         tmd_aes_generic_decrypt_xts(output, k1, k2, dataunit, spoint, input, nb_blocks);
@@ -486,7 +486,7 @@ void tmd_aes_generic_encrypt_ctr(uint8_t *output, const aes_key *key, const aes_
             block128_copy(newIV, &block);
 }
 
-void tmd_aes_generic_encrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, aes_block *dataunit,
+void tmd_aes_generic_encrypt_xts(aes_block *output, const aes_key *k1, aes_key *k2, aes_block *dataunit,
                              uint32_t spoint, aes_block *input, uint32_t nb_blocks)
 {
         aes_block block, tweak;
@@ -506,7 +506,7 @@ void tmd_aes_generic_encrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, ae
         }
 }
 
-void tmd_aes_generic_decrypt_xts(aes_block *output, aes_key *k1, aes_key *k2, aes_block *dataunit,
+void tmd_aes_generic_decrypt_xts(aes_block *output, const aes_key *k1, aes_key *k2, aes_block *dataunit,
                              uint32_t spoint, aes_block *input, uint32_t nb_blocks)
 {
         aes_block block, tweak;

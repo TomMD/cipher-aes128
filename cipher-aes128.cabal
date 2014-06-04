@@ -52,6 +52,7 @@ library
   cc-options:
   if flag(halvm)
     cc-options: -maes -mpclmul -mssse3 -DWITH_AESNI
+    cpp-options: -DWITH_AESNI -maes -mpclmul -mssse3
   -- None by default cc-options:          -mssse3 -maes -mpclmul
 
 source-repository head

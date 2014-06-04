@@ -49,7 +49,7 @@ static void block128_sse_print(__m128i m)
 }
 #endif
 
-void tmd_aes_ni_init(aes_key *key, uint8_t *origkey, uint8_t size);
+void tmd_aes_ni_init(aes_key *key, const uint8_t *origkey, uint8_t size);
 void tmd_aes_ni_encrypt_block128(aes_block *out, aes_key *key, aes_block *in);
 void tmd_aes_ni_encrypt_block256(aes_block *out, aes_key *key, aes_block *in);
 void tmd_aes_ni_decrypt_block128(aes_block *out, aes_key *key, aes_block *in);

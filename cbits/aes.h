@@ -80,9 +80,9 @@ void tmd_aes_decrypt_cbc(aes_block *output, const aes_key *key, const aes_block 
 void tmd_aes_encrypt_ctr(uint8_t *output, const aes_key *key, const aes_block *iv, aes_block *newIV, const uint8_t *input, uint32_t len);
 void tmd_aes_gen_ctr(aes_block *output, const aes_key *key, aes_block *iv, uint32_t nb_blocks);
 
-void tmd_aes_encrypt_xts(aes_block *output, aes_key *key, aes_key *key2, aes_block *sector,
+void tmd_aes_encrypt_xts(aes_block *output, const aes_key *key, aes_key *key2, aes_block *sector,
                      uint32_t spoint, aes_block *input, uint32_t nb_blocks);
-void tmd_aes_decrypt_xts(aes_block *output, aes_key *key, aes_key *key2, aes_block *sector,
+void tmd_aes_decrypt_xts(aes_block *output, const aes_key *key, aes_key *key2, aes_block *sector,
                      uint32_t spoint, aes_block *input, uint32_t nb_blocks);
 
 void tmd_aes_gcm_init(aes_gcm *gcm, const aes_key *key);
