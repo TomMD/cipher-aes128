@@ -1,17 +1,27 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE RecordWildCards #-}
 module Crypto.Cipher.AES128
-  ( AESKey128, AESKey192, AESKey256
+  ( -- * Key types with crypto-api instances
+    AESKey128, AESKey192, AESKey256
   , BlockCipher(..), buildKeyIO, zeroIV
+    -- * GCM Operations
+  , makeGCMCtx, aesKeyToGCM, GCMCtx, AES_GCM
+  , Crypto.Cipher.AES128.encryptGCM
+  , Crypto.Cipher.AES128.decryptGCM
   ) where
 
-import Crypto.Cipher.AES128.Internal
+import Crypto.Cipher.AES128.Internal as I
 import Crypto.Classes
+import Data.Function (on)
 import Control.Monad (when)
 import Data.Serialize
 import Data.Tagged
+import Data.Word (Word8)
 import Foreign.Ptr
 import Foreign.ForeignPtr
+import Foreign.Marshal.Alloc as F
 import System.IO.Unsafe
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Unsafe as B
@@ -147,3 +157,128 @@ instance BlockCipher AESKey256 where
             return (ct,IV newIV)
     {-# INLINE ctr #-}
     unCtr = ctr
+
+-- GCM Routines
+maxTagLen :: Int
+maxTagLen = 16
+
+data AuthTag = AuthTag { unAuthTag :: ByteString }
+
+-- | A tuple of key and precomputed data for use by GCM
+data GCMCtx k = GCMCtx { gcmkey :: k
+                       , gcmpc  :: GCMpc
+                       }
+
+instance Eq AuthTag where
+    (==)  = constTimeEq `on` unAuthTag
+
+-- A super-class indicating which keys can be used with GCMCtx.
+class (BlockCipher k, GetExpanded k) => AES_GCM k where
+instance AES_GCM AESKey128
+instance AES_GCM AESKey192
+instance AES_GCM AESKey256
+
+-- | Given key material produce a context useful for GCM operations
+makeGCMCtx :: AES_GCM k => ByteString -> Maybe (GCMCtx k)
+makeGCMCtx = fmap aesKeyToGCM . buildKey
+
+-- | Given an AESKey produce a GCM Context.
+aesKeyToGCM :: AES_GCM k => k -> GCMCtx k
+aesKeyToGCM k = GCMCtx k (I.precomputeGCMdata k)
+
+-- |Encrypts multiple-of-block-sized input, returning a bytestring and tag.
+encryptGCM :: AES_GCM k
+           => GCMCtx k
+           -> ByteString -- ^ IV
+           -> ByteString -- ^ Plaintext
+           -> ByteString -- ^ AAD
+           -> (ByteString, AuthTag)
+encryptGCM key iv pt aad = unsafePerformIO $ do
+ B.unsafeUseAsCString pt  $ \ptPtr  -> do
+  B.unsafeUseAsCString iv  $ \ivPtr  -> do
+   B.unsafeUseAsCString aad $ \aadPtr -> do
+    ctPtr  <- F.mallocBytes (B.length pt)
+    tagPtr <- F.mallocBytes maxTagLen
+    encryptGCMPtr key
+                  (castPtr ivPtr) (B.length iv)
+                  (castPtr ptPtr) (B.length pt)
+                  (castPtr aadPtr) (B.length aad)
+                  (castPtr tagPtr)
+                  (castPtr ctPtr)
+    ctBS  <- B.unsafePackMallocCStringLen (castPtr ctPtr, B.length pt)
+    tagBS <- B.unsafePackMallocCStringLen (castPtr tagPtr, maxTagLen)
+    return (ctBS, AuthTag tagBS)
+
+-- Encrypts multiple-of-block-sized input, filling a pointer with the
+-- result of [ctr, ct, tag].
+encryptGCMPtr :: AES_GCM k
+           => GCMCtx k
+           -> Ptr Word8 -- ^ IV
+           -> Int       -- ^ IV Length
+           -> Ptr Word8 -- ^ Plaintext buffer
+           -> Int       -- ^ Plaintext length
+           -> Ptr Word8 -- ^ AAD buffer
+           -> Int       -- ^ AAD Length
+           -> Ptr Word8 -- ^ Tag buffer (always allocated to max length)
+           -> Ptr Word8 -- ^ ciphertext buffer (at least encBytes large)
+           -> IO ()
+encryptGCMPtr (GCMCtx {..}) ivPtr ivLen
+                             ptPtr ptLen
+                             aadPtr aadLen
+                             tagPtr
+                             ctPtr =
+ do I.encryptGCM gcmkey gcmpc
+                   (castPtr ivPtr)  (fromIntegral ivLen)
+                   (castPtr aadPtr) (fromIntegral aadLen)
+                   (castPtr ptPtr)  (fromIntegral ptLen)
+                   (castPtr tagPtr)
+                   (castPtr ctPtr)
+
+-- | Decrypts multiple-of-block-sized input, returing a bytestring of the
+-- [ctr, ct, tag].
+decryptGCM :: AES_GCM k
+           => GCMCtx k
+           -> ByteString -- ^ IV
+           -> ByteString -- ^ Ciphertext
+           -> ByteString -- ^ AAD
+           -> (ByteString, AuthTag)
+           -- ^ Plaintext and incremented context (or an error)
+decryptGCM gcmdata iv ct aad = unsafePerformIO $ do
+ let ivLen     = B.length iv
+     tagLen    = maxTagLen
+     ctLen     = B.length ct
+ B.unsafeUseAsCString iv  $ \ivPtr  -> do
+  B.unsafeUseAsCString ct  $ \ctPtr  -> do
+   B.unsafeUseAsCString aad $ \aadPtr -> do
+    tagPtr     <- F.mallocBytes tagLen
+    ptPtr      <- F.mallocBytes ctLen
+    decryptGCM_ptr gcmdata
+                   (castPtr ivPtr)   ivLen
+                   (castPtr ctPtr)   ctLen
+                   (castPtr aadPtr) (B.length aad)
+                   (castPtr ptPtr)
+                   (castPtr tagPtr)
+    tagBS      <- B.unsafePackMallocCStringLen (castPtr tagPtr,tagLen)
+    ptBS       <- B.unsafePackMallocCStringLen (castPtr ptPtr, ctLen)
+    return (ptBS, AuthTag tagBS)
+
+decryptGCM_ptr :: AES_GCM k
+               => GCMCtx k
+               -> Ptr Word8 -> Int -- IV
+               -> Ptr Word8 -> Int -- CT
+               -> Ptr Word8 -> Int -- AAD
+               -> Ptr Word8        -- Tag
+               -> Ptr Word8        -- Plaintext
+               -> IO ()
+decryptGCM_ptr (GCMCtx {..})
+               ivPtr ivLen
+               ctPtr ctLen
+               aadPtr aadLen
+               tagPtr
+               ptPtr =
+    I.decryptGCM gcmkey gcmpc
+                   ivPtr  (fromIntegral ivLen)
+                   aadPtr (fromIntegral aadLen)
+                   ctPtr  (fromIntegral ctLen)
+                   ptPtr
+                   tagPtr

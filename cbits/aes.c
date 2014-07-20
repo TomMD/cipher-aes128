@@ -330,7 +330,8 @@ void tmd_aes_gcm_init(aes_gcm *gcm, const aes_key *key)
         aes_encrypt_block(&gcm->h, key, &gcm->h);
 }
 
-void tmd_aes_ctx_init(const aes_gcm *gcm, aes_ctx *ctx, const aes_key *key, const uint8_t *iv, uint32_t len)
+void tmd_aes_ctx_init(const aes_gcm *gcm, aes_ctx *ctx
+        , const aes_key *key, const uint8_t *iv, uint32_t len)
 {
         ctx->length_aad = 0;
         ctx->length_input = 0;

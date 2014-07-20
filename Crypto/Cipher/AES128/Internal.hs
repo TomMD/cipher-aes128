@@ -12,6 +12,8 @@ module Crypto.Cipher.AES128.Internal
         , cipherOnlyGCM
         , decipherOnlyGCM
         , finishGCM, aadGCM
+        -- * Internal, will not be exported in a near-future release.
+        , GetExpanded
         ) where
 
 import Foreign.Ptr
@@ -20,6 +22,7 @@ import Foreign.Storable
 import Foreign.Marshal.Alloc
 import Data.Word
 import Data.Bits (shiftL, (.|.))
+import System.IO.Unsafe
 
 -- AES Bindings
 data AESKeyStruct
@@ -49,6 +52,9 @@ instance GetExpanded AESKey128 where
 
 type AESGcmPtr = Ptr GCMStruct
 data GCMStruct
+
+-- Store the key, the precomputed GCM data, and the current IV by way of
+-- a foreign pointer
 data GCM k = GCM { _gcmFP   :: GCMpc
                  , _keyFP   :: k
                  , _ctxFP2  :: ForeignPtr CTXStruct
@@ -283,7 +289,7 @@ generateGCM :: GetExpanded k
             => k
             -> IO (GCM k)
 generateGCM keyStruct = do
-    gcmPC <- precomputeGCMdata keyStruct
+    let gcmPC = precomputeGCMdata keyStruct
     withForeignPtr (expandedKey keyStruct) $ \k -> do
       c <- c_allocate_ctx
       allocaBytes 12 $ \ivPtr -> withGCMpc gcmPC $ \g -> do
@@ -293,8 +299,8 @@ generateGCM keyStruct = do
       return (GCM gcmPC keyStruct cFP)
 {-# INLINE generateGCM #-}
 
-precomputeGCMdata :: GetExpanded k => k -> IO GCMpc
-precomputeGCMdata k = do
+precomputeGCMdata :: GetExpanded k => k -> GCMpc
+precomputeGCMdata k = unsafePerformIO $ do
     withForeignPtr (expandedKey k) $ \kp -> do
         g <- c_allocate_gcm
         c_gcm_init g kp
@@ -381,13 +387,13 @@ decryptCTR (expandedKey -> k) iv niv pt ct len = withForeignPtr k $ \p -> do
     c_decrypt_ctr pt p iv niv ct (fromIntegral len)
 
 encryptGCM :: GetExpanded k
-           => k
-           -> GCMpc
-           -> Ptr Word8 -> Word32 -- IV
-           -> Ptr Word8 -> Word32 -- AAD
-           -> Ptr Word8 -> Word32 -- PT
-           -> Ptr Word8 -- CT
-           -> Ptr Word8 -- Tag
+           => k                   -- AES{128,192,256}
+           -> GCMpc               -- Precomputed GCM Data
+           -> Ptr Word8 -> Word32 -- IV, len
+           -> Ptr Word8 -> Word32 -- AAD, len
+           -> Ptr Word8 -> Word32 -- PT, len
+           -> Ptr Word8 -- CT  (out)
+           -> Ptr Word8 -- Tag (128 bits out)
            -> IO ()
 encryptGCM (expandedKey -> k) (GCMpc g) iv ivLen aad aadLen pt ptLen ct tag =
     withForeignPtr k $ \kp ->
@@ -397,11 +403,11 @@ encryptGCM (expandedKey -> k) (GCMpc g) iv ivLen aad aadLen pt ptLen ct tag =
 decryptGCM :: GetExpanded k
            => k
            -> GCMpc
-           -> Ptr Word8 -> Word32 -- IV
-           -> Ptr Word8 -> Word32 -- AAD
-           -> Ptr Word8 -> Word32 -- CT
-           -> Ptr Word8 -- PT
-           -> Ptr Word8 -- Tag
+           -> Ptr Word8 -> Word32 -- IV, len
+           -> Ptr Word8 -> Word32 -- AAD, len
+           -> Ptr Word8 -> Word32 -- CT, len
+           -> Ptr Word8           -- PT (out)
+           -> Ptr Word8           -- Tag (out)
            -> IO ()
 decryptGCM (expandedKey -> k) (GCMpc g) iv ivLen aad aadLen ct ctLen pt tag =
     withForeignPtr k $ \kp ->
