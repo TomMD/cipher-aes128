@@ -5,7 +5,7 @@ module Crypto.Cipher.AES128
     AESKey128, AESKey192, AESKey256
   , BlockCipher(..), buildKeyIO, zeroIV
     -- * GCM Operations
-  , makeGCMCtx, aesKeyToGCM, GCMCtx, AES_GCM
+  , makeGCMCtx, aesKeyToGCM, GCMCtx, AuthTag(..), AES_GCM
   , Crypto.Cipher.AES128.encryptGCM
   , Crypto.Cipher.AES128.decryptGCM
   ) where
@@ -203,8 +203,8 @@ encryptGCM key iv pt aad = unsafePerformIO $ do
                   (castPtr ivPtr) (B.length iv)
                   (castPtr ptPtr) (B.length pt)
                   (castPtr aadPtr) (B.length aad)
-                  (castPtr tagPtr)
                   (castPtr ctPtr)
+                  (castPtr tagPtr)
     ctBS  <- B.unsafePackMallocCStringLen (castPtr ctPtr, B.length pt)
     tagBS <- B.unsafePackMallocCStringLen (castPtr tagPtr, maxTagLen)
     return (ctBS, AuthTag tagBS)
@@ -219,20 +219,20 @@ encryptGCMPtr :: AES_GCM k
            -> Int       -- ^ Plaintext length
            -> Ptr Word8 -- ^ AAD buffer
            -> Int       -- ^ AAD Length
-           -> Ptr Word8 -- ^ Tag buffer (always allocated to max length)
            -> Ptr Word8 -- ^ ciphertext buffer (at least encBytes large)
+           -> Ptr Word8 -- ^ Tag buffer (always allocated to max length)
            -> IO ()
 encryptGCMPtr (GCMCtx {..}) ivPtr ivLen
                              ptPtr ptLen
                              aadPtr aadLen
-                             tagPtr
-                             ctPtr =
+                             ctPtr
+                             tagPtr =
  do I.encryptGCM gcmkey gcmpc
                    (castPtr ivPtr)  (fromIntegral ivLen)
                    (castPtr aadPtr) (fromIntegral aadLen)
                    (castPtr ptPtr)  (fromIntegral ptLen)
-                   (castPtr tagPtr)
                    (castPtr ctPtr)
+                   (castPtr tagPtr)
 
 -- | Decrypts multiple-of-block-sized input, returing a bytestring of the
 -- [ctr, ct, tag].
@@ -267,15 +267,15 @@ decryptGCM_ptr :: AES_GCM k
                -> Ptr Word8 -> Int -- IV
                -> Ptr Word8 -> Int -- CT
                -> Ptr Word8 -> Int -- AAD
-               -> Ptr Word8        -- Tag
                -> Ptr Word8        -- Plaintext
+               -> Ptr Word8        -- Tag
                -> IO ()
 decryptGCM_ptr (GCMCtx {..})
                ivPtr ivLen
                ctPtr ctLen
                aadPtr aadLen
-               tagPtr
-               ptPtr =
+               ptPtr
+               tagPtr =
     I.decryptGCM gcmkey gcmpc
                    ivPtr  (fromIntegral ivLen)
                    aadPtr (fromIntegral aadLen)
