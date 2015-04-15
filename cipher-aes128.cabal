@@ -37,7 +37,7 @@ library
   default-language:    Haskell2010
   exposed-modules:     Crypto.Cipher.AES128, Crypto.Cipher.AES128.Internal
   build-depends:       base >=4.2 && < 5,
-                       bytestring,
+                       bytestring >= 0.10,
                        crypto-api >= 0.13,
                        tagged,
                        cereal
@@ -82,4 +82,5 @@ Executable aes128_test
                     , crypto-api-tests
                     , test-framework
                     , cipher-aes128
-                    , bytestring, tagged, cereal, crypto-api
+                    , bytestring >= 0.10
+                    , tagged, cereal, crypto-api
