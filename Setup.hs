@@ -1,14 +1,15 @@
+{-# LANGUAGE CPP #-}
+import Control.Monad (unless)
 import Distribution.Simple
 import Distribution.Simple.LocalBuildInfo
-import Distribution.Simple.Setup
-import Distribution.PackageDescription
 import Distribution.Simple.Utils
 import Distribution.Simple.Program
 import Distribution.Verbosity
 import System.Process
-import System.Directory
 import System.Exit
+import System.IO (hFlush, stdout)
 
+main :: IO ()
 main = defaultMainWithHooks hk
  where
  hk = simpleUserHooks { buildHook = \pd lbi uh bf -> do
@@ -17,7 +18,7 @@ main = defaultMainWithHooks hk
                                             mConf  = lookupProgram ccProg (withPrograms lbi)
                                             hcConf = lookupProgram hcProg (withPrograms lbi)
                                             err = error "Could not determine C compiler"
-                                            cc  = locationPath . programLocation  . maybe err id $ mConf
+                                            _cc  = locationPath . programLocation  . maybe err id $ mConf
                                             hc  = locationPath . programLocation  . maybe err id $ hcConf
                                         b <- canUseAesIntrinsicsFlag hc
                                         let newWithPrograms1 = userSpecifyArgs "gcc" aesArgs (withPrograms lbi)
@@ -40,6 +41,30 @@ canUseAesIntrinsicsFlag cc = do
                                 , "int real_main() {"
                                 , "return 0; }"
                                 ])
-        ec <- rawSystemExitCode normal cc (aesArgsHC ++ ["-c", tmpDir ++ "/testIntrinsic.c"])
+        ec <- myRawSystemExitCode normal cc (aesArgsHC ++ ["-c", tmpDir ++ "/testIntrinsic.c"])
         notice normal $ "Result of NI Intrinsics Test: " ++ show (ec == ExitSuccess)
         return (ec == ExitSuccess)
+
+myRawSystemExitCode :: Verbosity -> FilePath -> [String] -> IO ExitCode
+#if __GLASGOW_HASKELL__ >= 704
+-- We know for sure, that if GHC >= 7.4 implies Cabal >= 1.14
+myRawSystemExitCode = rawSystemExitCode
+#else
+-- Legacy branch:
+-- We implement our own 'rawSystemExitCode', this will even work if
+-- the user happens to have Cabal >= 1.14 installed with GHC 7.0 or
+-- 7.2
+myRawSystemExitCode verbosity path args = do
+    printRawCommandAndArgs verbosity path args
+    hFlush stdout
+    exitcode <- rawSystem path args
+    unless (exitcode == ExitSuccess) $ do
+        debug verbosity $ path ++ " returned " ++ show exitcode
+    return exitcode
+  where
+    printRawCommandAndArgs :: Verbosity -> FilePath -> [String] -> IO ()
+    printRawCommandAndArgs verbosity path args
+      | verbosity >= deafening = print (path, args)
+      | verbosity >= verbose = putStrLn $ unwords (path : args)
+      | otherwise = return ()
+#endif
