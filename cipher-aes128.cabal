@@ -20,7 +20,7 @@ bug-reports:         https://github.com/TomMD/cipher-aes128/issues
 build-type:          Custom
 -- build-type:          Simple
 -- ^^^ For HaLVM
-cabal-version:       >=1.12
+cabal-version:       >=1.10
 
 extra-source-files:       ./cbits/*.h, ./cbits/*.c
                         , AUTHORS
