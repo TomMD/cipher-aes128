@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                cipher-aes128
-version:             0.7.0.1
+version:             0.7.0.2
 synopsis:            AES and common modes using AES-NI when available.
 description:         Cipher-aes128 is an implementation of AES and common modes of operation.  It borrows Hanquez's C AES code (see 'cipher-aes') but
                      is unique due to including compile-time detection of
