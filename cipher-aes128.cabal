@@ -21,7 +21,8 @@ build-type:          Custom
 -- build-type:          Simple
 -- ^^^ For HaLVM
 cabal-version:       >=1.10
-tested-with:         GHC==7.0.4,GHC==7.2.2,GHC==7.4.2,GHC==7.6.3,GHC==7.8.4,GHC==7.10.2
+tested-with:         GHC==7.10.3
+default-language:    Haskell2010
 
 extra-source-files:       ./cbits/*.h, ./cbits/*.c
                         , AUTHORS
@@ -64,7 +65,7 @@ benchmark bench
   type:         exitcode-stdio-1.0
   hs-source-dirs:       . Benchmark
   main-is:              bench.hs
-  build-depends:        base < 5, criterion, crypto-api, entropy, bytestring, tagged, cereal, cipher-aes
+  build-depends:        base < 5, criterion, crypto-api, entropy, bytestring, tagged, cereal
   ghc-options:          -O2
   include-dirs:        cbits
   c-sources:           ./cbits/aes.c
