@@ -22,7 +22,6 @@ build-type:          Custom
 -- ^^^ For HaLVM
 cabal-version:       >=1.10
 tested-with:         GHC==7.10.3
-default-language:    Haskell2010
 
 extra-source-files:       ./cbits/*.h, ./cbits/*.c
                         , AUTHORS
@@ -68,6 +67,7 @@ benchmark bench
   build-depends:        base < 5, criterion, crypto-api, entropy, bytestring, tagged, cereal
   ghc-options:          -O2
   include-dirs:        cbits
+  default-language:    Haskell2010
   c-sources:           ./cbits/aes.c
                      , ./cbits/aes_generic.c
                      , ./cbits/aes_x86ni.c
