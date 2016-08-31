@@ -12,7 +12,6 @@ main = do
         ivV = B.replicate 16 0
     pt <- getEntropy (2^16)
     k  <- buildKeyIO :: IO AES128.AESKey128
-    let kV = AES.initAES (B.pack [0..15])
     defaultMain
         [ bench "aes-ecb cipher-aes128" $ nf (AES128.encryptBlock k) pt
         , bench "aes-ctr cipher-aes128" $ nf (fst . AES128.ctr k iv) pt
