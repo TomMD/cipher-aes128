@@ -34,6 +34,9 @@ flag halvm
     description: The HaLVM target
     default: False
 
+custom-setup
+  setup-depends: base >= 4.2 && <5, Cabal >= 1.10 && <2.3, process >=1.0
+
 library
   default-language:    Haskell2010
   exposed-modules:     Crypto.Cipher.AES128, Crypto.Cipher.AES128.Internal
