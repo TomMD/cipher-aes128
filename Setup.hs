@@ -13,8 +13,13 @@ main :: IO ()
 main = defaultMainWithHooks hk
  where
  hk = simpleUserHooks { buildHook = \pd lbi uh bf -> do
+#if MIN_VERSION_Cabal(2,4,0)
+                                        let ccProg = Program "gcc" undefined undefined undefined undefined
+                                            hcProg = Program "ghc" undefined undefined undefined undefined
+#else
                                         let ccProg = Program "gcc" undefined undefined undefined
                                             hcProg = Program "ghc" undefined undefined undefined
+#endif
                                             mConf  = lookupProgram ccProg (withPrograms lbi)
                                             hcConf = lookupProgram hcProg (withPrograms lbi)
                                             err = error "Could not determine C compiler"
