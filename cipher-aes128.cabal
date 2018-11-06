@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                cipher-aes128
-version:             0.7.0.2
+version:             0.7.0.4
 synopsis:            AES and common modes using AES-NI when available.
 description:         Cipher-aes128 is an implementation of AES and common modes of operation.  It borrows Hanquez's C AES code (see 'cipher-aes') but
                      is unique due to including compile-time detection of
@@ -21,7 +21,7 @@ build-type:          Custom
 -- build-type:          Simple
 -- ^^^ For HaLVM
 cabal-version:       >=1.10
-tested-with:         GHC==7.10.3
+tested-with:         GHC==7.4.2, GHC==7.6.3, GHC==7.8.4, GHC==7.10.3, GHC==8.0.2, GHC==8.2.2, GHC==8.4.4, GHC==8.6.2
 
 extra-source-files:       ./cbits/*.h, ./cbits/*.c
                         , AUTHORS
@@ -33,6 +33,9 @@ flag test
 flag halvm
     description: The HaLVM target
     default: False
+
+custom-setup
+  setup-depends: base >= 4.2 && <5, Cabal >= 1.10 && <2.5, process >=1.0
 
 library
   default-language:    Haskell2010
@@ -76,6 +79,7 @@ benchmark bench
   cc-options:          -mssse3 -maes -mpclmul
 
 Executable aes128_test
+  default-language:    Haskell2010
   if !flag(test)
     buildable: False
   main-is: Test/test.hs
