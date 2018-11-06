@@ -9,12 +9,18 @@ import System.Process
 import System.Exit
 import System.IO (hFlush, stdout)
 
+#if defined(MIN_VERSION_Cabal) && MIN_VERSION_Cabal(2,4,0)
+#define NORMALISE_ARGS (\_ _ -> id)
+#else
+#define NORMALISE_ARGS
+#endif
+
 main :: IO ()
 main = defaultMainWithHooks hk
  where
  hk = simpleUserHooks { buildHook = \pd lbi uh bf -> do
-                                        let ccProg = Program "gcc" undefined undefined undefined
-                                            hcProg = Program "ghc" undefined undefined undefined
+                                        let ccProg = Program "gcc" undefined undefined undefined NORMALISE_ARGS
+                                            hcProg = Program "ghc" undefined undefined undefined NORMALISE_ARGS
                                             mConf  = lookupProgram ccProg (withPrograms lbi)
                                             hcConf = lookupProgram hcProg (withPrograms lbi)
                                             err = error "Could not determine C compiler"
