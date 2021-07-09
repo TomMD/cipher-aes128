@@ -32,16 +32,15 @@ aesArgsHC :: [String]
 aesArgsHC = map ("-optc" ++) aesArgs
 
 canUseAesIntrinsicsFlag :: FilePath -> IO Bool
-canUseAesIntrinsicsFlag cc = do
-        withTempDirectory normal "" "testIntrinsic" $ \tmpDir -> do
-        writeFile (tmpDir ++ "/testIntrinsic.c")
+canUseAesIntrinsicsFlag cc = withTempDirectory normal "" "testIntrinsic" $ \tmpDir -> do
+          writeFile (tmpDir ++ "/testIntrinsic.c")
                 (unlines        [ "#include <wmmintrin.h>"
                                 , "int real_main() {"
                                 , "return 0; }"
                                 ])
-        ec <- myRawSystemExitCode normal cc (aesArgsHC ++ ["-c", tmpDir ++ "/testIntrinsic.c"])
-        notice normal $ "Result of NI Intrinsics Test: " ++ show (ec == ExitSuccess)
-        return (ec == ExitSuccess)
+          ec <- myRawSystemExitCode normal cc (aesArgsHC ++ ["-c", tmpDir ++ "/testIntrinsic.c"])
+          notice normal $ "Result of NI Intrinsics Test: " ++ show (ec == ExitSuccess)
+          return (ec == ExitSuccess)
 
 myRawSystemExitCode :: Verbosity -> FilePath -> [String] -> IO ExitCode
 #if __GLASGOW_HASKELL__ >= 704
